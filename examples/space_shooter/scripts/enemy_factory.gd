@@ -3,7 +3,7 @@
 ## Factory pattern for creating enemy instances with configuration.
 ## Centralizes enemy creation and makes it easy to add new types.
 
-class_name EnemyFactory extends RefCounted
+class_name SpaceShooterEnemyFactory extends RefCounted
 
 #region Enemy Type Registry
 ## Registry of enemy types and their scene paths

@@ -1,0 +1,194 @@
+[gd_scene load_steps=5 format=3 uid="uid://test_platform_x"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(1000, 50)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
+size = Vector2(32, 48)
+
+[sub_resource type="GDScript" id="GDScript_test_player"]
+script/source = "extends CharacterBody2D
+
+# Quick test player using PlatformerMovement
+var platformer_movement: PlatformerMovement
+var host: ComponentHost
+
+func _ready():
+	# Create ComponentHost
+	host = ComponentHost.new()
+	host.name = \"ComponentHost\"
+	add_child(host)
+	
+	# Add PlatformerMovement
+	platformer_movement = PlatformerMovement.new()
+	platformer_movement.name = \"PlatformerMovement\"
+	platformer_movement.max_speed = 200.0
+	platformer_movement.jump_velocity = -400.0
+	platformer_movement.gravity = 980.0
+	platformer_movement.coyote_time = 0.1
+	platformer_movement.jump_buffer_time = 0.1
+	host.add_component(platformer_movement)
+	
+	print(\"[TestPlayer] Ready! Controls: A/D = move, Space = jump\")
+
+func _physics_process(delta):
+	# Simple input
+	var move_dir = Vector2.ZERO
+	if Input.is_action_pressed(\"ui_left\"):
+		move_dir.x -= 1
+	if Input.is_action_pressed(\"ui_right\"):
+		move_dir.x += 1
+	
+	platformer_movement.set_direction(move_dir)
+	
+	# Jump
+	if Input.is_action_just_pressed(\"ui_accept\"):
+		platformer_movement.jump()
+	
+	platformer_movement.set_jump_held(Input.is_action_pressed(\"ui_accept\"))
+	
+	move_and_slide()
+	
+	# Debug info
+	if Input.is_action_just_pressed(\"ui_select\"):
+		print(\"Position: \", position)
+		print(\"Velocity: \", velocity)
+		print(\"Grounded: \", platformer_movement.is_grounded())
+"
+
+[sub_resource type="GDScript" id="GDScript_instructions"]
+script/source = "extends Label
+
+func _ready():
+	text = \"\"\"PLATFORMX TEST SCENE
+	
+Controls:
+- Arrow Keys / WASD: Move
+- Space: Jump (hold for higher jump)
+- Enter: Print debug info
+- ESC: Quit
+
+Test Features:
+✓ PlatformerMovement component
+✓ Gravity and jump
+✓ Coyote time (can jump after leaving platform)
+✓ Variable jump height
+✓ Ground detection
+\"\"\"
+"
+
+[node name="TestScene" type="Node2D"]
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(640, 600)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="ColorRect" type="ColorRect" parent="Ground"]
+offset_left = -500.0
+offset_top = -25.0
+offset_right = 500.0
+offset_bottom = 25.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="LeftWall" type="StaticBody2D" parent="."]
+position = Vector2(50, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftWall"]
+shape = SubResource("RectangleShape2D_ground")
+rotation = 1.5708
+
+[node name="ColorRect" type="ColorRect" parent="LeftWall"]
+offset_left = -25.0
+offset_top = -500.0
+offset_right = 25.0
+offset_bottom = 500.0
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="RightWall" type="StaticBody2D" parent="."]
+position = Vector2(1230, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightWall"]
+shape = SubResource("RectangleShape2D_ground")
+rotation = 1.5708
+
+[node name="ColorRect" type="ColorRect" parent="RightWall"]
+offset_left = -25.0
+offset_top = -500.0
+offset_right = 25.0
+offset_bottom = 500.0
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="Platform1" type="StaticBody2D" parent="."]
+position = Vector2(300, 450)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform1"]
+shape = SubResource("RectangleShape2D_ground")
+scale = Vector2(0.3, 1)
+
+[node name="ColorRect" type="ColorRect" parent="Platform1"]
+offset_left = -150.0
+offset_top = -25.0
+offset_right = 150.0
+offset_bottom = 25.0
+color = Color(0.5, 0.4, 0.3, 1)
+
+[node name="Platform2" type="StaticBody2D" parent="."]
+position = Vector2(640, 350)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform2"]
+shape = SubResource("RectangleShape2D_ground")
+scale = Vector2(0.3, 1)
+
+[node name="ColorRect" type="ColorRect" parent="Platform2"]
+offset_left = -150.0
+offset_top = -25.0
+offset_right = 150.0
+offset_bottom = 25.0
+color = Color(0.5, 0.4, 0.3, 1)
+
+[node name="Platform3" type="StaticBody2D" parent="."]
+position = Vector2(980, 450)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform3"]
+shape = SubResource("RectangleShape2D_ground")
+scale = Vector2(0.3, 1)
+
+[node name="ColorRect" type="ColorRect" parent="Platform3"]
+offset_left = -150.0
+offset_top = -25.0
+offset_right = 150.0
+offset_bottom = 25.0
+color = Color(0.5, 0.4, 0.3, 1)
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(200, 500)
+script = SubResource("GDScript_test_player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+position = Vector2(0, -24)
+shape = SubResource("RectangleShape2D_player")
+
+[node name="Sprite" type="ColorRect" parent="Player"]
+offset_left = -16.0
+offset_top = -48.0
+offset_right = 16.0
+color = Color(0.2, 0.5, 1, 1)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Instructions" type="Label" parent="UI"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 200.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+script = SubResource("GDScript_instructions")
