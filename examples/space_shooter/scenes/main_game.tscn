@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3 uid="uid://c5vxqw8m3w4yg"]
+
+[ext_resource type="Script" uid="uid://c46b7ovn3uv4x" path="res://examples/space_shooter/scripts/game_controller.gd" id="1"]
+[ext_resource type="Script" uid="uid://civjuy1m57vpw" path="res://examples/space_shooter/scripts/space_background.gd" id="2"]
+[ext_resource type="Script" uid="uid://cqv2h7ly1o0ma" path="res://examples/space_shooter/scripts/player_controller.gd" id="3"]
+[ext_resource type="Script" uid="uid://cjmh1rh2glmlt" path="res://examples/space_shooter/scripts/wave_manager.gd" id="4"]
+[ext_resource type="Script" uid="uid://b2744byr1f2ue" path="res://examples/space_shooter/ui/game_hud.gd" id="5"]
+
+[node name="MainGame" type="Node2D"]
+
+[node name="Background" type="Node2D" parent="."]
+script = ExtResource("2")
+
+[node name="GameController" type="Node" parent="." groups=["game_controller"]]
+script = ExtResource("1")
+
+[node name="Player" type="Node2D" parent="." groups=["player"]]
+position = Vector2(576, 550)
+script = ExtResource("3")
+
+[node name="WaveManager" type="Node2D" parent="." groups=["wave_manager"]]
+script = ExtResource("4")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5")
+
+[node name="ProjectilesContainer" type="Node2D" parent="."]
+
+[node name="EnemiesContainer" type="Node2D" parent="."]
+
+[node name="PowerupsContainer" type="Node2D" parent="."]

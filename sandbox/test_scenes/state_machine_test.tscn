@@ -1,0 +1,111 @@
+[gd_scene load_steps=7 format=3 uid="uid://c2m8vxqnhqy3x"]
+
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="1_host"]
+[ext_resource type="Script" path="res://militia_forge/components/state_machine/state_machine.gd" id="2_statemachine"]
+[ext_resource type="Script" path="res://sandbox/test_components/states/idle_state.gd" id="3_idle"]
+[ext_resource type="Script" path="res://sandbox/test_components/states/walk_state.gd" id="4_walk"]
+[ext_resource type="Script" path="res://sandbox/test_components/states/run_state.gd" id="5_run"]
+[ext_resource type="Script" path="res://sandbox/test_scenes/state_machine_test_controller.gd" id="6_controller"]
+
+[node name="StateMachineTest" type="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="UI"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 510.0
+offset_bottom = 280.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "MilitiaForge2D - State Machine Test"
+
+[node name="HSeparator" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="CurrentState" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Current State: None"
+
+[node name="PreviousState" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Previous State: None"
+
+[node name="TimeInState" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Time in State: 0.0s"
+
+[node name="TransitionCount" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Transitions: 0"
+
+[node name="HSeparator2" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="StateInfo" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "State Info: -"
+
+[node name="HSeparator3" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Instructions" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Controls:
+[1] - Force Idle State
+[2] - Force Walk State
+[3] - Force Run State
+[H] - Show State History
+[D] - Debug Print Info
+[SPACE] - Toggle Auto-transitions
+[Q] - Quit"
+
+[node name="AutoMode" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.596078, 0.941176, 0.439216, 1)
+text = "Auto-transitions: ON"
+
+[node name="TestHost" type="Node2D" parent="."]
+position = Vector2(640, 360)
+script = ExtResource("1_host")
+
+[node name="StateMachine" type="Node" parent="TestHost"]
+script = ExtResource("2_statemachine")
+initial_state_name = "Idle"
+track_history = true
+debug_transitions = true
+
+[node name="Idle" type="Node" parent="TestHost/StateMachine"]
+script = ExtResource("3_idle")
+idle_duration = 2.0
+next_state_name = "Walk"
+
+[node name="Walk" type="Node" parent="TestHost/StateMachine"]
+script = ExtResource("4_walk")
+walk_speed = 100.0
+walk_duration = 3.0
+next_state_name = "Run"
+
+[node name="Run" type="Node" parent="TestHost/StateMachine"]
+script = ExtResource("5_run")
+run_speed = 200.0
+run_duration = 2.5
+next_state_name = "Idle"
+
+[node name="TestController" type="Node" parent="."]
+script = ExtResource("6_controller")

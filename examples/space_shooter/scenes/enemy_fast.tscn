@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://fast_enemy_001"]
+
+[ext_resource type="Script" path="res://examples/space_shooter/scripts/enemy_base.gd" id="1"]
+
+[node name="EnemyFast" type="Node2D"]
+script = ExtResource("1")
+enemy_type = "Fast"
+health = 15
+speed = 200.0
+score_value = 150
+damage_to_player = 15
+movement_pattern = 1
+can_shoot = false

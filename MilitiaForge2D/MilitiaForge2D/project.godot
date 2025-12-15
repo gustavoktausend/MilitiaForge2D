@@ -1,0 +1,36 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="MilitiaForge2D"
+config/description="A modular component-based framework for rapid 2D game development in Godot 4.x"
+config/version="0.1.0"
+run/main_scene="res://sandbox/test_scenes/component_foundation_test.tscn"
+config/features=PackedStringArray("4.5", "Forward Plus")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[dotnet]
+
+project/assembly_name="MilitiaForge2D"
+
+[editor]
+
+version_control/plugin_name="GitPlugin"
+version_control/autoload_on_startup=true
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

@@ -1,0 +1,143 @@
+[gd_scene load_steps=7 format=3 uid="uid://f5p1yxqnhqy6b"]
+
+[ext_resource type="Script" path="res://sandbox/test_components/player_input_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/input/input_component.gd" id="3_input"]
+[ext_resource type="Script" path="res://militia_forge/components/movement/topdown_movement.gd" id="4_movement"]
+[ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="5_health"]
+[ext_resource type="Script" path="res://sandbox/test_scenes/input_test_controller.gd" id="6_controller"]
+
+[sub_resource type="RectangleShape2D" id="player_shape"]
+size = Vector2(32, 32)
+
+[sub_resource type="CircleShape2D" id="interaction_area"]
+radius = 50.0
+
+[node name="InputTest" type="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="UI"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 600.0
+offset_bottom = 400.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "MilitiaForge2D - Input System Test"
+
+[node name="HSeparator" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Context" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Context: gameplay"
+
+[node name="InputEnabled" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Input Enabled: Yes"
+
+[node name="HSeparator2" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="ActiveActions" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Active Actions: None"
+
+[node name="HSeparator3" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Instructions" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Controls:
+[WASD] or [Arrows] - Move
+[Shift] - Sprint
+[Space] - Jump
+[E] - Interact
+[J] - Attack
+[ESC] - Pause
+
+[1] - Toggle Input Enable
+[2] - Push Menu Context
+[3] - Pop Context
+[4] - Toggle Buffer
+[R] - Rebind Jump to 'K'
+[T] - Reset Jump to Space
+[D] - Debug Print
+[Q] - Quit"
+
+[node name="BufferStatus" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.596078, 0.941176, 0.439216, 1)
+text = "Buffer: ON (5 frames)
+Deadzone: 0.2"
+
+[node name="ActionLog" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Recent Actions:
+(Press buttons to see log)"
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_left = -500.0
+offset_top = -500.0
+offset_right = 1780.0
+offset_bottom = 1220.0
+color = Color(0.180392, 0.211765, 0.247059, 1)
+
+[node name="Player" type="CharacterBody2D" parent="." groups=["player"]]
+position = Vector2(640, 360)
+script = ExtResource("1_player")
+
+[node name="ComponentHost" type="Node2D" parent="Player"]
+script = ExtResource("2_host")
+
+[node name="InputComponent" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("3_input")
+buffer_enabled = true
+buffer_size = 5
+debug_input = true
+
+[node name="TopDownMovement" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 200.0
+
+[node name="HealthComponent" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("5_health")
+max_health = 100
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("player_shape")
+
+[node name="Sprite" type="ColorRect" parent="Player"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.235294, 0.639216, 0.909804, 1)
+
+[node name="InteractionArea" type="Area2D" parent="Player"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/InteractionArea"]
+shape = SubResource("interaction_area")
+debug_color = Color(0, 0.6, 0.7, 0.2)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+zoom = Vector2(1.5, 1.5)
+
+[node name="TestController" type="Node" parent="."]
+script = ExtResource("6_controller")

@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3 uid="uid://d9s4bxqnhqy9e"]
+
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="1_host"]
+[ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://militia_forge/components/movement/bounded_movement.gd" id="3_movement"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hurtbox.gd" id="4_hurtbox"]
+[ext_resource type="Script" path="res://sandbox/test_components/basic_enemy_ai.gd" id="5_ai"]
+
+[sub_resource type="RectangleShape2D" id="enemy_shape"]
+size = Vector2(32, 32)
+
+[node name="Enemy" type="CharacterBody2D" groups=["enemy"]]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("5_ai")
+
+[node name="ComponentHost" type="Node2D" parent="."]
+script = ExtResource("1_host")
+
+[node name="HealthComponent" type="Node" parent="ComponentHost"]
+script = ExtResource("2_health")
+max_health = 30
+invincibility_duration = 0.1
+
+[node name="BoundedMovement" type="Node" parent="ComponentHost"]
+script = ExtResource("3_movement")
+max_speed = 100.0
+boundary_mode = 1
+bounce_factor = 0.8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("enemy_shape")
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.909804, 0.235294, 0.235294, 1)
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 4
+script = ExtResource("4_hurtbox")
+hit_flash_enabled = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("enemy_shape")

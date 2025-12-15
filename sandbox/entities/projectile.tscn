@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3 uid="uid://c8r3axqnhqy8d"]
+
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="1_host"]
+[ext_resource type="Script" path="res://militia_forge/components/combat/projectile_component.gd" id="2_projectile"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hitbox.gd" id="3_hitbox"]
+
+[sub_resource type="CircleShape2D" id="hitbox_shape"]
+radius = 6.0
+
+[node name="Projectile" type="Node2D"]
+
+[node name="ComponentHost" type="Node2D" parent="."]
+script = ExtResource("1_host")
+
+[node name="ProjectileComponent" type="Node" parent="ComponentHost"]
+script = ExtResource("2_projectile")
+damage = 10
+speed = 500.0
+pattern = 0
+lifetime = 5.0
+auto_setup_bounded_movement = true
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -3.0
+offset_top = -8.0
+offset_right = 3.0
+offset_bottom = 8.0
+color = Color(1, 1, 0, 1)
+
+[node name="Hitbox" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("3_hitbox")
+damage = 10
+hit_once_per_target = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("hitbox_shape")

@@ -1,0 +1,222 @@
+[gd_scene load_steps=8 format=3 uid="uid://b7q2zxqnhqy7c"]
+
+[ext_resource type="Script" path="res://sandbox/test_components/player_bounded_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/input/input_component.gd" id="3_input"]
+[ext_resource type="Script" path="res://militia_forge/components/movement/bounded_movement.gd" id="4_movement"]
+[ext_resource type="Script" path="res://sandbox/test_scenes/bounded_movement_test_controller.gd" id="5_controller"]
+
+[sub_resource type="RectangleShape2D" id="player_shape"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="bouncer_shape"]
+size = Vector2(24, 24)
+
+[node name="BoundedMovementTest" type="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="UI"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 550.0
+offset_bottom = 380.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "MilitiaForge2D - Bounded Movement Test"
+
+[node name="HSeparator" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Mode" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Mode: CLAMP"
+
+[node name="Position" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Position: (0, 0)"
+
+[node name="DistanceToBoundary" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Distance to Boundary: 0"
+
+[node name="LastEdge" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Last Edge: NONE"
+
+[node name="Bounds" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Bounds: (0, 0, 1280, 720)"
+
+[node name="HSeparator2" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Instructions" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Controls:
+[WASD] or [Arrows] - Move
+[Shift] - Sprint
+
+[1] - CLAMP Mode (stop at edge)
+[2] - BOUNCE Mode (bounce off edge)
+[3] - WRAP Mode (wrap to other side)
+[4] - DESTROY Mode (destroy at edge)
+
+[+/-] - Adjust Margin
+[R] - Reset Position
+[D] - Debug Print
+[Q] - Quit
+
+Blue Entity: Player (controlled)
+Orange Entities: Bounce mode demo
+Green Entity: Wrap mode demo"
+
+[node name="Settings" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.596078, 0.941176, 0.439216, 1)
+text = "Margin: 32 pixels
+Bounce Factor: 0.8"
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_left = -100.0
+offset_top = -100.0
+offset_right = 1380.0
+offset_bottom = 820.0
+color = Color(0.180392, 0.211765, 0.247059, 1)
+
+[node name="BoundaryVisualization" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Player" type="CharacterBody2D" parent="." groups=["player"]]
+position = Vector2(640, 360)
+script = ExtResource("1_player")
+
+[node name="ComponentHost" type="Node2D" parent="Player"]
+script = ExtResource("2_host")
+
+[node name="InputComponent" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("3_input")
+
+[node name="BoundedMovement" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 250.0
+acceleration = 1500.0
+boundary_mode = 0
+use_viewport_bounds = true
+boundary_margin = Vector2(32, 32)
+debug_movement = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("player_shape")
+
+[node name="Sprite" type="ColorRect" parent="Player"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.235294, 0.639216, 0.909804, 1)
+
+[node name="Label" type="Label" parent="Player"]
+offset_left = -20.0
+offset_top = -35.0
+offset_right = 20.0
+offset_bottom = -12.0
+text = "YOU"
+horizontal_alignment = 1
+
+[node name="BouncerDemo1" type="CharacterBody2D" parent="." groups=["bouncer"]]
+position = Vector2(200, 200)
+
+[node name="ComponentHost" type="Node2D" parent="BouncerDemo1"]
+script = ExtResource("2_host")
+
+[node name="BoundedMovement" type="Node" parent="BouncerDemo1/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 150.0
+boundary_mode = 1
+use_viewport_bounds = true
+boundary_margin = Vector2(32, 32)
+bounce_factor = 0.8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncerDemo1"]
+shape = SubResource("bouncer_shape")
+
+[node name="Sprite" type="ColorRect" parent="BouncerDemo1"]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0.909804, 0.639216, 0.235294, 1)
+
+[node name="BouncerDemo2" type="CharacterBody2D" parent="." groups=["bouncer"]]
+position = Vector2(1080, 520)
+
+[node name="ComponentHost" type="Node2D" parent="BouncerDemo2"]
+script = ExtResource("2_host")
+
+[node name="BoundedMovement" type="Node" parent="BouncerDemo2/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 200.0
+boundary_mode = 1
+use_viewport_bounds = true
+boundary_margin = Vector2(32, 32)
+bounce_factor = 0.9
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BouncerDemo2"]
+shape = SubResource("bouncer_shape")
+
+[node name="Sprite" type="ColorRect" parent="BouncerDemo2"]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0.909804, 0.639216, 0.235294, 1)
+
+[node name="WrapDemo" type="CharacterBody2D" parent="." groups=["wrapper"]]
+position = Vector2(400, 600)
+
+[node name="ComponentHost" type="Node2D" parent="WrapDemo"]
+script = ExtResource("2_host")
+
+[node name="BoundedMovement" type="Node" parent="WrapDemo/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 100.0
+boundary_mode = 2
+use_viewport_bounds = true
+boundary_margin = Vector2(32, 32)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WrapDemo"]
+shape = SubResource("bouncer_shape")
+
+[node name="Sprite" type="ColorRect" parent="WrapDemo"]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0.439216, 0.909804, 0.439216, 1)
+
+[node name="TestController" type="Node" parent="."]
+script = ExtResource("5_controller")
+
+[node name="InitTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
+autostart = true

@@ -1,0 +1,242 @@
+[gd_scene load_steps=10 format=3 uid="uid://e4n0wxqnhqy5a"]
+
+[ext_resource type="Script" path="res://sandbox/test_components/player_health_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="3_health"]
+[ext_resource type="Script" path="res://militia_forge/components/movement/topdown_movement.gd" id="4_movement"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hurtbox.gd" id="5_hurtbox"]
+[ext_resource type="Script" path="res://sandbox/test_components/enemy_wanderer.gd" id="6_enemy"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hitbox.gd" id="7_hitbox"]
+[ext_resource type="Script" path="res://sandbox/test_scenes/health_test_controller.gd" id="8_controller"]
+
+[sub_resource type="RectangleShape2D" id="player_shape"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="enemy_shape"]
+size = Vector2(40, 40)
+
+[node name="HealthTest" type="Node2D"]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="UI"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 550.0
+offset_bottom = 350.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "MilitiaForge2D - Health System Test"
+
+[node name="HSeparator" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Health" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Health: 100/100 (100%)"
+
+[node name="HealthBar" type="ProgressBar" parent="UI/Panel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="State" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "State: Alive"
+
+[node name="Invincible" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Invincible: No"
+
+[node name="Critical" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Critical: No"
+
+[node name="HSeparator2" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DamageTaken" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Total Damage Taken: 0"
+
+[node name="TimesHit" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Times Hit: 0"
+
+[node name="HSeparator3" type="HSeparator" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Instructions" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Controls:
+[WASD] - Move
+[Shift] - Sprint
+[H] - Heal 20 HP
+[J] - Take 10 Damage
+[K] - Kill Player
+[R] - Revive Player
+[T] - Toggle Regeneration
+[D] - Debug Print
+[Q] - Quit
+
+Enemies deal 15 damage on contact.
+Avoid the red enemies!"
+
+[node name="Settings" type="Label" parent="UI/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.596078, 0.941176, 0.439216, 1)
+text = "Regeneration: OFF
+Invincibility: 0.5s"
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_left = -500.0
+offset_top = -500.0
+offset_right = 1780.0
+offset_bottom = 1220.0
+color = Color(0.180392, 0.211765, 0.247059, 1)
+
+[node name="Player" type="CharacterBody2D" parent="." groups=["player"]]
+position = Vector2(640, 360)
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1_player")
+
+[node name="ComponentHost" type="Node2D" parent="Player"]
+script = ExtResource("2_host")
+
+[node name="HealthComponent" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("3_health")
+max_health = 100
+invincibility_duration = 0.5
+regeneration_enabled = false
+regeneration_rate = 5.0
+debug_health = true
+
+[node name="TopDownMovement" type="Node" parent="Player/ComponentHost"]
+script = ExtResource("4_movement")
+max_speed = 200.0
+acceleration = 1000.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("player_shape")
+
+[node name="Sprite" type="ColorRect" parent="Player"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.235294, 0.639216, 0.909804, 1)
+
+[node name="Hurtbox" type="Area2D" parent="Player"]
+collision_layer = 2
+collision_mask = 4
+script = ExtResource("5_hurtbox")
+hit_flash_enabled = true
+debug_hurtbox = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/Hurtbox"]
+shape = SubResource("player_shape")
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+zoom = Vector2(1.5, 1.5)
+
+[node name="Enemy1" type="CharacterBody2D" parent="." groups=["enemy"]]
+position = Vector2(800, 300)
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("6_enemy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy1"]
+shape = SubResource("enemy_shape")
+
+[node name="Sprite" type="ColorRect" parent="Enemy1"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.909804, 0.235294, 0.235294, 1)
+
+[node name="Hitbox" type="Area2D" parent="Enemy1"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("7_hitbox")
+damage = 15
+hit_once_per_target = true
+debug_hitbox = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy1/Hitbox"]
+shape = SubResource("enemy_shape")
+
+[node name="Enemy2" type="CharacterBody2D" parent="." groups=["enemy"]]
+position = Vector2(500, 500)
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("6_enemy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy2"]
+shape = SubResource("enemy_shape")
+
+[node name="Sprite" type="ColorRect" parent="Enemy2"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.909804, 0.235294, 0.235294, 1)
+
+[node name="Hitbox" type="Area2D" parent="Enemy2"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("7_hitbox")
+damage = 15
+hit_once_per_target = true
+debug_hitbox = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy2/Hitbox"]
+shape = SubResource("enemy_shape")
+
+[node name="Enemy3" type="CharacterBody2D" parent="." groups=["enemy"]]
+position = Vector2(750, 550)
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("6_enemy")
+move_speed = 70.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy3"]
+shape = SubResource("enemy_shape")
+
+[node name="Sprite" type="ColorRect" parent="Enemy3"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.909804, 0.235294, 0.235294, 1)
+
+[node name="Hitbox" type="Area2D" parent="Enemy3"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("7_hitbox")
+damage = 15
+hit_once_per_target = true
+debug_hitbox = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy3/Hitbox"]
+shape = SubResource("enemy_shape")
+
+[node name="TestController" type="Node" parent="."]
+script = ExtResource("8_controller")

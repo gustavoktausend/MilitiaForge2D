@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://tank_enemy_001"]
+
+[ext_resource type="Script" path="res://examples/space_shooter/scripts/enemy_base.gd" id="1"]
+
+[node name="EnemyTank" type="Node2D"]
+script = ExtResource("1")
+enemy_type = "Tank"
+health = 50
+speed = 80.0
+score_value = 300
+damage_to_player = 30
+movement_pattern = 2
+can_shoot = true
+fire_rate = 2.0
+projectile_damage = 15

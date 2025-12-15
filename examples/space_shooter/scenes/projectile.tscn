@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://bk5m8vw2r3l4h"]
+
+[ext_resource type="Script" path="res://examples/space_shooter/scripts/projectile.gd" id="1"]
+
+[node name="Projectile" type="Area2D"]
+script = ExtResource("1")
+speed = 500.0
+damage = 10
+lifetime = 3.0
+is_player_projectile = true

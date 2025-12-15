@@ -1,0 +1,48 @@
+# Godot 4+ specific ignores
+.godot/
+.import/
+
+# Godot-specific files
+*.translation
+export_presets.cfg
+
+# Mono-specific ignores (if using C#)
+.mono/
+data_*/
+mono_crash.*.json
+
+# System/Tool-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# Visual Studio / VS Code
+.vscode/
+.vs/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+
+# OS-specific
+*~
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Build outputs
+builds/
+exports/
+*.import
+
+# Temporary files
+*.tmp
+*.bak
+*.old
