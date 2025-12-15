@@ -32,6 +32,9 @@ var high_score: int = 0
 #endregion
 
 func _ready() -> void:
+	# Add to game_controller group so player can find us
+	add_to_group("game_controller")
+
 	# Load high score from save file
 	_load_high_score()
 
@@ -122,15 +125,25 @@ func add_score(points: int) -> void:
 	print("[GameController] Score: %d (High: %d)" % [current_score, high_score])
 
 func end_game() -> void:
+	print("╔═══════════════════════════════════════════════════════╗")
+	print("║        🎮 GAME CONTROLLER - END_GAME CALLED 🎮        ║")
+	print("╚═══════════════════════════════════════════════════════╝")
+
 	if current_state == GameState.GAME_OVER:
+		print("[GameController] Already in GAME_OVER state, ignoring")
 		return
 
-	print("[GameController] Game Over! Final Score: %d" % current_score)
+	print("[GameController] 🏁 GAME OVER! Final Score: %d" % current_score)
+	print("[GameController] Setting state to GAME_OVER...")
 	current_state = GameState.GAME_OVER
+
+	print("[GameController] Emitting game_over signal...")
 	game_over.emit()
 
 	# Show game over screen after delay
+	print("[GameController] Waiting 3 seconds before showing Game Over screen...")
 	await get_tree().create_timer(3.0).timeout
+	print("[GameController] Showing Game Over screen...")
 	_show_game_over_screen()
 
 func toggle_pause() -> void:

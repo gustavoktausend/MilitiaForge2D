@@ -72,41 +72,65 @@ func _process(delta: float) -> void:
 #endregion
 
 #region Damage Handling
-## Called when an area enters this hurtbox.
+## Called when an area entered this hurtbox.
 func _on_area_entered(area: Area2D) -> void:
+	if debug_hurtbox:
+		print("[Hurtbox] ⚡ area_entered called! Area: %s (Type: %s)" % [area.name, area.get_class()])
+
 	if not active:
+		if debug_hurtbox:
+			print("[Hurtbox] ❌ Not active, ignoring collision")
 		return
-	
+
 	# Check if the area is a Hitbox
 	if not area is Hitbox:
+		if debug_hurtbox:
+			print("[Hurtbox] ❌ Area is not a Hitbox, ignoring")
 		return
-	
+
 	var hitbox = area as Hitbox
-	
+
+	if debug_hurtbox:
+		print("[Hurtbox] ✅ Area IS a Hitbox! Damage: %d, Active: %s" % [hitbox.damage, hitbox.active])
+
 	# Check if hitbox is active
 	if not hitbox.active:
+		if debug_hurtbox:
+			print("[Hurtbox] ❌ Hitbox not active, ignoring")
 		return
-	
+
 	# Apply damage if we have a health component
 	if _health_component and _health_component.is_alive():
 		var damage = hitbox.damage
 		var attacker = hitbox.get_owner_node()
-		
+
+		if debug_hurtbox:
+			print("[Hurtbox] 💥 Calling take_damage(%d) on HealthComponent..." % damage)
+
 		var actual_damage = _health_component.take_damage(damage, attacker)
-		
+
+		if debug_hurtbox:
+			print("[Hurtbox] Actual damage dealt: %d" % actual_damage)
+
 		if actual_damage > 0:
 			# Visual feedback
 			if hit_flash_enabled:
 				_trigger_hit_flash()
-			
+
 			# Emit signal
 			hit_received.emit(hitbox, actual_damage)
-			
+
 			# Notify hitbox
 			hitbox.on_hit_landed(get_parent())
-			
+
 			if debug_hurtbox:
-				print("[Hurtbox] Received %d damage from %s" % [actual_damage, hitbox.name])
+				print("[Hurtbox] ✅ Received %d damage from %s" % [actual_damage, hitbox.name])
+	else:
+		if debug_hurtbox:
+			if not _health_component:
+				print("[Hurtbox] ❌ NO HEALTH COMPONENT!")
+			elif not _health_component.is_alive():
+				print("[Hurtbox] ❌ Entity is dead, ignoring damage")
 #endregion
 
 #region Public Methods

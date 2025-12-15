@@ -29,26 +29,40 @@ func _ready() -> void:
 	_connect_signals()
 
 func _setup_components() -> void:
+	print("╔═══════════════════════════════════════════════════════╗")
+	print("║          🚀 PLAYER SETUP STARTING 🚀                  ║")
+	print("╚═══════════════════════════════════════════════════════╝")
+
 	# Create ComponentHost
+	print("[Player] Creating ComponentHost...")
 	host = ComponentHost.new()
 	host.name = "PlayerHost"
 	add_child(host)
+	print("[Player] ComponentHost created and added to tree")
 
 	# Add Physics Body FIRST (before movement component needs it)
+	print("[Player] Creating CharacterBody2D...")
 	physics_body = CharacterBody2D.new()
 	physics_body.name = "Body"
 	host.add_child(physics_body)
+	print("[Player] CharacterBody2D created")
 
 	# Add Sprite placeholder
 	var sprite = Sprite2D.new()
 	sprite.name = "Sprite"
 	physics_body.add_child(sprite)
 
-	# Add Hurtbox for taking damage
+	# Add Hurtbox for taking damage (disabled during setup)
+	print("[Player] Creating Hurtbox...")
 	var hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
-	hurtbox.collision_layer = 1  # Player layer
-	hurtbox.collision_mask = 8   # Enemy projectile layer
+	hurtbox.active = false  # Disable during setup
+	hurtbox.monitoring = false
+	hurtbox.monitorable = false
+	hurtbox.debug_hurtbox = true  # Enable debug
+	print("[Player] Hurtbox created (disabled)")
+
+	# Create collision shape
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
 	shape.size = Vector2(32, 48)
@@ -78,12 +92,46 @@ func _setup_components() -> void:
 	host.add_component(movement)
 
 	# Setup Health Component
+	print("[Player] Creating HealthComponent...")
 	health = HealthComponent.new()
 	health.max_health = max_health
 	health.invincibility_enabled = true
 	health.invincibility_duration = 2.0
 	health.debug_health = true
 	host.add_component(health)
+	print("[Player] HealthComponent created: %d/%d HP" % [health.current_health, health.max_health])
+
+	# Wait for HealthComponent to be ready
+	print("[Player] Waiting for HealthComponent to be ready...")
+	await get_tree().process_frame
+	print("[Player] HealthComponent ready! Current health: %d/%d" % [health.current_health, health.max_health])
+
+	# NOW activate and configure Hurtbox (after HealthComponent is ready)
+	# Similar to enemy setup, manually set health component reference
+	print("[Player] Configuring Hurtbox with HealthComponent...")
+	hurtbox.set("_health_component", health)
+	hurtbox.set("_component_host", host)
+	print("[Player] Hurtbox references set")
+	hurtbox.collision_layer = 1  # Player layer
+	hurtbox.collision_mask = 10  # Binary 1010 = Layer 2 (enemies) + Layer 8 (enemy projectiles)
+	hurtbox.active = true
+	hurtbox.monitoring = true
+	hurtbox.monitorable = true
+	hurtbox.hit_flash_enabled = true  # Enable visual feedback
+	hurtbox.hit_flash_duration = 0.2
+
+	print("╔════════════════════════════════════════════════════╗")
+	print("║          🛡️  PLAYER HURTBOX ACTIVATED 🛡️          ║")
+	print("╠════════════════════════════════════════════════════╣")
+	print("║ Collision Layer: %d (Player)                      ║" % hurtbox.collision_layer)
+	print("║ Collision Mask:  %d (Binary: %s)       ║" % [hurtbox.collision_mask, String.num_int64(hurtbox.collision_mask, 2).pad_zeros(4)])
+	print("║   - Layer 2 (Enemies): %s                          ║" % ("YES" if hurtbox.collision_mask & 2 else "NO"))
+	print("║   - Layer 8 (Enemy Projectiles): %s                ║" % ("YES" if hurtbox.collision_mask & 256 else "NO"))
+	print("║ Active: %s                                         ║" % hurtbox.active)
+	print("║ Monitoring: %s                                     ║" % hurtbox.monitoring)
+	print("║ Monitorable: %s                                    ║" % hurtbox.monitorable)
+	print("║ Debug: %s                                          ║" % hurtbox.debug_hurtbox)
+	print("╚════════════════════════════════════════════════════╝")
 
 	# Setup Input Component
 	input_component = InputComponent.new()
@@ -118,6 +166,10 @@ func _setup_components() -> void:
 	particles = ParticleEffectComponent.new()
 	host.add_component(particles)
 
+	print("╔═══════════════════════════════════════════════════════╗")
+	print("║        ✅ PLAYER SETUP COMPLETED ✅                   ║")
+	print("╚═══════════════════════════════════════════════════════╝")
+
 func _setup_input_actions() -> void:
 	# Movement actions
 	input_component.add_action("move_up", [KEY_W, KEY_UP])
@@ -143,10 +195,19 @@ func _setup_visuals() -> void:
 	visual.add_child(glow)
 
 func _connect_signals() -> void:
+	print("╔═══════════════════════════════════════════════════════╗")
+	print("║        🔌 CONNECTING PLAYER SIGNALS 🔌               ║")
+	print("╚═══════════════════════════════════════════════════════╝")
+
 	# Connect to important signals
+	print("[Player] Connecting health.damage_taken...")
 	health.damage_taken.connect(_on_damage_taken)
+	print("[Player] Connecting health.died...")
 	health.died.connect(_on_player_died)
+	print("[Player] Connecting health.health_changed...")
 	health.health_changed.connect(_on_health_changed)
+
+	print("[Player] ✅ All signals connected!")
 
 func _process(_delta: float) -> void:
 	_handle_movement()
@@ -180,7 +241,11 @@ func _handle_shooting() -> void:
 		simple_weapon.stop_fire()
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
-	print("[Player] Took %d damage! Health: %d/%d" % [amount, health.current_health, health.max_health])
+	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	print("[Player] 💥 TOOK %d DAMAGE!" % amount)
+	print("[Player] 💚 Health: %d/%d" % [health.current_health, health.max_health])
+	print("[Player] 🛡️ Invincible: %s" % health.is_invincible())
+	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	# Visual feedback
 	_flash_damage()
@@ -203,15 +268,21 @@ func _on_health_changed(new_health: int, old_health: int) -> void:
 	print("[Player] Health changed: %d -> %d" % [old_health, new_health])
 
 func _on_player_died() -> void:
-	print("[Player] Player died!")
+	print("╔═══════════════════════════════════════╗")
+	print("║   💀 PLAYER DIED! GAME OVER 💀        ║")
+	print("╚═══════════════════════════════════════╝")
 
 	# Hide player
 	visible = false
 
 	# Notify game controller
 	var controllers = get_tree().get_nodes_in_group("game_controller")
+	print("[Player] Found %d game controllers" % controllers.size())
 	if controllers.size() > 0:
+		print("[Player] Calling end_game() on controller...")
 		controllers[0].end_game()
+	else:
+		push_error("[Player] NO GAME CONTROLLER FOUND! Cannot trigger Game Over!")
 
 func add_score(points: int) -> void:
 	if score:
