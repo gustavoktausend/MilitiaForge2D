@@ -19,6 +19,9 @@ const SIDE_PANEL_WIDTH: float = 320.0  # Width of each side panel
 @onready var lives_label: Label
 @onready var left_panel: Panel
 @onready var right_panel: Panel
+@onready var game_over_overlay: ColorRect
+@onready var restart_button: Button
+@onready var menu_button: Button
 #endregion
 
 #region Private Variables
@@ -180,6 +183,151 @@ func _create_hud_elements() -> void:
 	combo_label.visible = false
 	add_child(combo_label)
 
+	# Create Game Over overlay (hidden by default)
+	_create_game_over_overlay(viewport_size)
+
+func _create_game_over_overlay(viewport_size: Vector2) -> void:
+	# Semi-transparent dark overlay
+	game_over_overlay = ColorRect.new()
+	game_over_overlay.color = Color(0, 0, 0, 0.85)
+	game_over_overlay.anchor_right = 1.0
+	game_over_overlay.anchor_bottom = 1.0
+	game_over_overlay.visible = false
+	add_child(game_over_overlay)
+
+	# Center container for Game Over content
+	var center_container = CenterContainer.new()
+	center_container.anchor_right = 1.0
+	center_container.anchor_bottom = 1.0
+	game_over_overlay.add_child(center_container)
+
+	# Main panel
+	var main_panel = PanelContainer.new()
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
+	panel_style.set_border_width_all(4)
+	panel_style.border_color = Color(0.8, 0.2, 0.2)
+	panel_style.set_corner_radius_all(10)
+	main_panel.add_theme_stylebox_override("panel", panel_style)
+	center_container.add_child(main_panel)
+
+	# Margin container for padding
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 60)
+	margin.add_theme_constant_override("margin_top", 40)
+	margin.add_theme_constant_override("margin_right", 60)
+	margin.add_theme_constant_override("margin_bottom", 40)
+	main_panel.add_child(margin)
+
+	# Main VBox
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 25)
+	margin.add_child(vbox)
+
+	# GAME OVER title
+	var title = Label.new()
+	title.text = "GAME OVER"
+	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+
+	# Separator
+	var sep1 = HSeparator.new()
+	vbox.add_child(sep1)
+
+	# Stats container
+	var stats_container = VBoxContainer.new()
+	stats_container.add_theme_constant_override("separation", 15)
+	vbox.add_child(stats_container)
+
+	# Final Score
+	var final_score_label = Label.new()
+	final_score_label.name = "FinalScoreLabel"
+	final_score_label.text = "FINAL SCORE: 0"
+	final_score_label.add_theme_font_size_override("font_size", 36)
+	final_score_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+	final_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_container.add_child(final_score_label)
+
+	# High Score
+	var game_over_high_score = Label.new()
+	game_over_high_score.name = "GameOverHighScore"
+	game_over_high_score.text = "HIGH SCORE: 0"
+	game_over_high_score.add_theme_font_size_override("font_size", 24)
+	game_over_high_score.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	game_over_high_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_container.add_child(game_over_high_score)
+
+	# Wave reached
+	var wave_reached_label = Label.new()
+	wave_reached_label.name = "WaveReachedLabel"
+	wave_reached_label.text = "WAVE REACHED: 1"
+	wave_reached_label.add_theme_font_size_override("font_size", 20)
+	wave_reached_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	wave_reached_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_container.add_child(wave_reached_label)
+
+	# Separator
+	var sep2 = HSeparator.new()
+	vbox.add_child(sep2)
+
+	# Buttons container
+	var buttons_container = HBoxContainer.new()
+	buttons_container.add_theme_constant_override("separation", 20)
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(buttons_container)
+
+	# Restart button
+	restart_button = Button.new()
+	restart_button.text = "RESTART"
+	restart_button.custom_minimum_size = Vector2(200, 60)
+	restart_button.add_theme_font_size_override("font_size", 24)
+
+	var restart_normal = StyleBoxFlat.new()
+	restart_normal.bg_color = Color(0.2, 0.6, 0.2)
+	restart_normal.set_corner_radius_all(8)
+	restart_button.add_theme_stylebox_override("normal", restart_normal)
+
+	var restart_hover = StyleBoxFlat.new()
+	restart_hover.bg_color = Color(0.3, 0.8, 0.3)
+	restart_hover.set_corner_radius_all(8)
+	restart_button.add_theme_stylebox_override("hover", restart_hover)
+
+	var restart_pressed = StyleBoxFlat.new()
+	restart_pressed.bg_color = Color(0.15, 0.4, 0.15)
+	restart_pressed.set_corner_radius_all(8)
+	restart_button.add_theme_stylebox_override("pressed", restart_pressed)
+
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Menu button
+	menu_button = Button.new()
+	menu_button.text = "MENU"
+	menu_button.custom_minimum_size = Vector2(200, 60)
+	menu_button.add_theme_font_size_override("font_size", 24)
+
+	var menu_normal = StyleBoxFlat.new()
+	menu_normal.bg_color = Color(0.5, 0.5, 0.5)
+	menu_normal.set_corner_radius_all(8)
+	menu_button.add_theme_stylebox_override("normal", menu_normal)
+
+	var menu_hover = StyleBoxFlat.new()
+	menu_hover.bg_color = Color(0.7, 0.7, 0.7)
+	menu_hover.set_corner_radius_all(8)
+	menu_button.add_theme_stylebox_override("hover", menu_hover)
+
+	var menu_pressed = StyleBoxFlat.new()
+	menu_pressed.bg_color = Color(0.3, 0.3, 0.3)
+	menu_pressed.set_corner_radius_all(8)
+	menu_button.add_theme_stylebox_override("pressed", menu_pressed)
+
+	menu_button.pressed.connect(_on_menu_pressed)
+	buttons_container.add_child(menu_button)
+
+	print("[HUD] Game Over overlay created")
+
 func _connect_to_game() -> void:
 	# Find game controller
 	var controllers = get_tree().get_nodes_in_group("game_controller")
@@ -187,6 +335,9 @@ func _connect_to_game() -> void:
 		game_controller = controllers[0]
 		if game_controller.has_signal("score_changed"):
 			game_controller.score_changed.connect(_on_score_changed)
+		if game_controller.has_signal("game_over"):
+			game_controller.game_over.connect(_on_game_over)
+			print("[HUD] Connected to game_over signal")
 
 	# Find player
 	var players = get_tree().get_nodes_in_group("player")
@@ -272,6 +423,58 @@ func _on_combo_changed(combo: int, _multiplier: float) -> void:
 func _update_display() -> void:
 	if game_controller:
 		_on_score_changed(game_controller.get_current_score())
+
+func _on_game_over() -> void:
+	print("[HUD] Game Over signal received! Showing overlay...")
+
+	if not game_over_overlay:
+		push_error("[HUD] Game Over overlay not found!")
+		return
+
+	# Update stats
+	if game_controller:
+		var final_score = game_controller.get_current_score()
+		var high_score = game_controller.get_high_score()
+
+		var final_score_label = game_over_overlay.find_child("FinalScoreLabel", true, false)
+		if final_score_label:
+			final_score_label.text = "FINAL SCORE: %d" % final_score
+
+		var high_score_label = game_over_overlay.find_child("GameOverHighScore", true, false)
+		if high_score_label:
+			high_score_label.text = "HIGH SCORE: %d" % high_score
+
+			# Highlight if new high score
+			if final_score >= high_score:
+				high_score_label.text = "NEW HIGH SCORE: %d" % final_score
+				high_score_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+
+	if wave_manager:
+		var current_wave = wave_manager.current_wave
+		var wave_label = game_over_overlay.find_child("WaveReachedLabel", true, false)
+		if wave_label:
+			wave_label.text = "WAVE REACHED: %d" % current_wave
+
+	# Show overlay with fade-in animation
+	game_over_overlay.modulate.a = 0.0
+	game_over_overlay.visible = true
+
+	var tween = create_tween()
+	tween.tween_property(game_over_overlay, "modulate:a", 1.0, 0.5)
+
+	print("[HUD] Game Over overlay shown")
+
+func _on_restart_pressed() -> void:
+	print("[HUD] Restart button pressed")
+
+	# Reload the current scene
+	get_tree().reload_current_scene()
+
+func _on_menu_pressed() -> void:
+	print("[HUD] Menu button pressed - Returning to main menu...")
+
+	# Go to main menu
+	get_tree().change_scene_to_file("res://examples/space_shooter/scenes/main_menu.tscn")
 
 ## Get the play area rectangle (for movement bounds)
 static func get_play_area() -> Rect2:

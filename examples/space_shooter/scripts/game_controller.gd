@@ -140,11 +140,7 @@ func end_game() -> void:
 	print("[GameController] Emitting game_over signal...")
 	game_over.emit()
 
-	# Show game over screen after delay
-	print("[GameController] Waiting 3 seconds before showing Game Over screen...")
-	await get_tree().create_timer(3.0).timeout
-	print("[GameController] Showing Game Over screen...")
-	_show_game_over_screen()
+	print("[GameController] Game Over sequence complete!")
 
 func toggle_pause() -> void:
 	if current_state == GameState.PLAYING:
@@ -179,9 +175,8 @@ func _on_score_changed(new_score: int) -> void:
 	add_score(new_score)
 
 func _show_game_over_screen() -> void:
-	print("[GameController] Showing Game Over screen...")
-	# This will be implemented with proper UI
-	print("Press R to restart")
+	# Game Over UI is now handled by the HUD via game_over signal
+	print("[GameController] Game Over screen is handled by HUD")
 
 func _show_victory_screen() -> void:
 	print("[GameController] Showing Victory screen...")
