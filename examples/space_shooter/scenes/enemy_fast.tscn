@@ -10,4 +10,6 @@ speed = 200.0
 score_value = 150
 damage_to_player = 15
 movement_pattern = 1
-can_shoot = false
+can_shoot = true
+fire_rate = 3.0
+projectile_damage = 10

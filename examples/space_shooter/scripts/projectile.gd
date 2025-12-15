@@ -15,6 +15,8 @@ extends Node2D
 #region Private Variables
 var direction: Vector2 = Vector2.UP
 var time_alive: float = 0.0
+var hitbox: Node = null  # Reference to Hitbox for cleanup
+var is_being_destroyed: bool = false  # Prevent multiple destruction calls
 #endregion
 
 func _ready() -> void:
@@ -50,7 +52,7 @@ func _create_visual() -> void:
 
 func _create_hitbox() -> void:
 	# Create Hitbox component that will damage Hurtboxes
-	var hitbox = Hitbox.new()
+	hitbox = Hitbox.new()  # Store reference
 	hitbox.name = "ProjectileHitbox"
 	hitbox.damage = damage
 	hitbox.hit_once_per_target = true  # Only hit once per target
@@ -97,8 +99,21 @@ func _create_hitbox() -> void:
 	])
 
 func _on_hitbox_hit(target: Node, damage_dealt: int) -> void:
+	# Prevent multiple calls
+	if is_being_destroyed:
+		return
+	is_being_destroyed = true
+
 	print("[Projectile] Hit target %s for %d damage! Destroying projectile..." % [target.name, damage_dealt])
-	queue_free()
+
+	# Disable hitbox immediately to prevent further collisions
+	# but keep it alive long enough for Hurtbox to process the damage
+	if hitbox and is_instance_valid(hitbox):
+		hitbox.monitoring = false
+		hitbox.monitorable = false
+
+	# Use call_deferred to ensure Hurtbox processes damage before projectile is destroyed
+	call_deferred("queue_free")
 
 func _process(delta: float) -> void:
 	# Move projectile

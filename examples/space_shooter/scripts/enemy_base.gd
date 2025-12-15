@@ -30,7 +30,8 @@ enum MovementPattern {
 	ZIGZAG,
 	CIRCULAR,
 	SINE_WAVE,
-	TRACKING  # Follows player
+	TRACKING,  # Follows player
+	STOP_AND_SHOOT  # Descends to a position and stops to shoot
 }
 #endregion
 
@@ -47,10 +48,27 @@ var physics_body: CharacterBody2D  # Reference to the physics body
 var player: Node2D = null
 var movement_time: float = 0.0
 var initial_x: float = 0.0
+var has_stopped: bool = false  # For STOP_AND_SHOOT pattern
+var stop_position_y: float = 150.0  # Y position where enemy stops
+var shoot_timer: float = 0.0  # Timer for shooting
+var lateral_movement_timer: float = 0.0  # For lateral movement while stopped
+var zigzag_direction: float = 1.0  # Direction for zigzag movement (1.0 = right, -1.0 = left)
+var _is_dying: bool = false  # Prevent multiple death notifications
+var _is_destroyed: bool = false  # Prevent multiple queue_free calls
+var _enemy_id: int = 0  # Unique ID for debugging
+static var _next_id: int = 0  # Global counter for enemy IDs
 #endregion
 
 func _ready() -> void:
-	print("[Enemy] Creating %s enemy at position %v" % [enemy_type, global_position])
+	# Assign unique ID for debugging
+	_enemy_id = _next_id
+	_next_id += 1
+
+	print("[Enemy #%d] Creating %s enemy at position %v" % [_enemy_id, enemy_type, global_position])
+
+	# Initialize zigzag direction randomly
+	zigzag_direction = 1.0 if randf() > 0.5 else -1.0
+
 	await _setup_components()
 	_setup_visuals()
 	_connect_signals()
@@ -148,32 +166,6 @@ func _setup_components() -> void:
 		enemy_type, hurtbox.collision_layer, hurtbox.collision_mask, hurtbox.active, hurtbox.monitoring, hurtbox.monitorable
 	])
 
-	# Connect to area_entered signal directly to debug
-	hurtbox.area_entered.connect(func(area):
-		print("[Enemy] %s Hurtbox.area_entered SIGNAL called! Area: %s (is Hitbox: %s)" % [
-			enemy_type, area.name, area is Hitbox
-		])
-		print("[Enemy] %s Hurtbox active: %s, _health_component: %s" % [
-			enemy_type, hurtbox.active, hurtbox.get("_health_component") != null
-		])
-		if hurtbox.get("_health_component"):
-			var hc = hurtbox.get("_health_component")
-			print("[Enemy] %s HealthComponent is_alive: %s, current_health: %d/%d" % [
-				enemy_type, hc.is_alive(), hc.current_health, hc.max_health
-			])
-		if area is Hitbox:
-			print("[Enemy] %s Hitbox.active: %s, damage: %d" % [
-				enemy_type, area.active, area.damage
-			])
-	)
-
-	# Connect to hit_received signal to see if damage is processed
-	hurtbox.hit_received.connect(func(hitbox, damage):
-		print("[Enemy] %s HIT_RECEIVED! Damage: %d from %s" % [
-			enemy_type, damage, hitbox.name
-		])
-	)
-
 	# Verify HealthComponent can be found after Hurtbox is added
 	await get_tree().process_frame
 	var found_health = host.get_component("HealthComponent")
@@ -195,6 +187,11 @@ func _setup_components() -> void:
 	)
 	movement_component.set_custom_bounds(play_area_bounds)
 	movement_component.boundary_margin = Vector2(0, 0)  # No margin, destroy at exact boundaries
+
+	# Connect to boundary signal to handle enemy leaving screen
+	if movement_component.has_signal("destroyed_by_boundary"):
+		movement_component.destroyed_by_boundary.connect(_on_destroyed_by_boundary)
+
 	host.add_component(movement_component)
 
 	# Setup Weapon if can shoot (using SimpleWeapon for consistency)
@@ -264,8 +261,8 @@ func _connect_signals() -> void:
 	health_component.died.connect(_on_enemy_died)
 	health_component.damage_taken.connect(_on_damage_taken)
 
-	if movement_component:
-		movement_component.destroyed_by_boundary.connect(_on_boundary_reached)
+	# NOTE: destroyed_by_boundary is already connected in _setup_components()
+	# Don't connect again here to avoid duplicate signal emissions
 
 func _process(delta: float) -> void:
 	movement_time += delta
@@ -284,11 +281,26 @@ func _update_movement(_delta: float) -> void:
 
 		MovementPattern.ZIGZAG:
 			direction = Vector2.DOWN
-			direction.x = sin(movement_time * 3.0)
+
+			# Check if near boundaries and reverse direction
+			if physics_body:
+				var current_x = physics_body.global_position.x
+				var left_bound = 320 + 30  # Left boundary + margin
+				var right_bound = 960 - 30  # Right boundary - margin
+
+				# Reverse direction if near boundaries
+				if current_x <= left_bound and zigzag_direction < 0:
+					zigzag_direction = 1.0  # Change to right
+				elif current_x >= right_bound and zigzag_direction > 0:
+					zigzag_direction = -1.0  # Change to left
+
+			# Apply zigzag movement with current direction
+			direction.x = zigzag_direction
 
 		MovementPattern.CIRCULAR:
-			direction.x = cos(movement_time * 2.0)
-			direction.y = 0.5 + sin(movement_time * 2.0) * 0.5
+			# Circular pattern with more emphasis on downward movement
+			direction.x = cos(movement_time * 2.0) * 0.4  # Reduced lateral movement
+			direction.y = 0.8 + sin(movement_time * 2.0) * 0.2  # More downward bias
 
 		MovementPattern.SINE_WAVE:
 			direction = Vector2.DOWN
@@ -300,27 +312,58 @@ func _update_movement(_delta: float) -> void:
 				direction = (player.global_position - global_position).normalized()
 				direction = direction * 0.3 + Vector2.DOWN * 0.7  # Mix with downward
 
+		MovementPattern.STOP_AND_SHOOT:
+			# Descend until reaching stop position
+			if not has_stopped:
+				if physics_body.global_position.y < stop_position_y:
+					direction = Vector2.DOWN
+				else:
+					has_stopped = true
+					direction = Vector2.ZERO
+					print("[Enemy] %s stopped at position %v" % [enemy_type, physics_body.global_position])
+			else:
+				# Stopped - do lateral movement
+				lateral_movement_timer += _delta
+				var lateral_speed = 0.3
+				direction.x = sin(lateral_movement_timer * lateral_speed)
+				direction.y = 0
+
 	if movement_pattern != MovementPattern.SINE_WAVE:
 		movement_component.set_direction(direction.normalized())
 
-func _update_shooting(_delta: float) -> void:
-	if can_shoot and weapon and player and physics_body:
-		# Shoot towards player occasionally
-		if randf() < 0.02:  # 2% chance per frame
-			var shoot_position = physics_body.global_position
-			var shoot_direction = (player.global_position - shoot_position).normalized()
-			var did_fire = weapon.fire(shoot_position, shoot_direction)
-			if did_fire:
-				print("[Enemy] %s fired! Position: %v, Direction: %v" % [enemy_type, shoot_position, shoot_direction])
+func _update_shooting(delta: float) -> void:
+	if not can_shoot or not weapon or not player or not physics_body:
+		return
+
+	# Use timer-based shooting for more consistent fire rate
+	shoot_timer += delta
+
+	# Fire rate depends on movement pattern
+	var current_fire_rate = fire_rate
+	if movement_pattern == MovementPattern.STOP_AND_SHOOT and has_stopped:
+		current_fire_rate = fire_rate * 0.5  # Shoot faster when stopped
+
+	if shoot_timer >= current_fire_rate:
+		shoot_timer = 0.0
+		var shoot_position = physics_body.global_position
+		var shoot_direction = (player.global_position - shoot_position).normalized()
+		var did_fire = weapon.fire(shoot_position, shoot_direction)
+		if did_fire:
+			print("[Enemy] %s fired! Position: %v, Direction: %v" % [enemy_type, shoot_position, shoot_direction])
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
-	print("[Enemy] %s took %d damage! Health: %d/%d" % [enemy_type, amount, health_component.current_health, health_component.max_health])
+	print("%s took %d damage! Health: %d/%d" % [_get_log_prefix(), amount, health_component.current_health, health_component.max_health])
 	# Visual feedback for taking damage
 	# particles.play_effect() - Would trigger particle effect if configured
 	pass
 
 func _on_enemy_died() -> void:
-	print("[Enemy] %s DIED! Emitting enemy_died signal and destroying..." % enemy_type)
+	# Prevent multiple death notifications
+	if _is_dying:
+		return
+	_is_dying = true
+
+	print("%s DIED! Emitting enemy_died signal and destroying..." % _get_log_prefix())
 
 	# Visual feedback for death
 	# particles.play_effect() - Would trigger particle effect if configured
@@ -331,12 +374,42 @@ func _on_enemy_died() -> void:
 		_spawn_powerup()
 
 	print("[Enemy] %s calling queue_free()" % enemy_type)
-	queue_free()
+	_destroy_safely()
 
 func _on_boundary_reached(_boundary: String) -> void:
 	# Enemy left the screen, remove it
+	# Prevent multiple death notifications
+	if _is_dying:
+		return
+	_is_dying = true
+
+	# Emit signal so WaveManager knows to decrement enemy count
+	print("[Enemy] %s left screen, emitting enemy_died signal (no score)" % enemy_type)
+	enemy_died.emit(self, 0)  # 0 score since player didn't destroy it
+	_destroy_safely()
+
+func _on_destroyed_by_boundary(_edge) -> void:
+	# Called by BoundedMovement when enemy is destroyed by leaving bounds
+	# Prevent multiple death notifications
+	if _is_dying:
+		return
+	_is_dying = true
+
+	print("[Enemy] %s destroyed by boundary, emitting enemy_died signal (no score)" % enemy_type)
+	enemy_died.emit(self, 0)  # 0 score since player didn't destroy it
+	_destroy_safely()
+
+func _destroy_safely() -> void:
+	# Prevent multiple queue_free calls
+	if _is_destroyed:
+		return
+	_is_destroyed = true
+
 	queue_free()
+
+func _get_log_prefix() -> String:
+	return "[Enemy #%d %s]" % [_enemy_id, enemy_type]
 
 func _spawn_powerup() -> void:
 	# This will be implemented when we create the powerup system
-	print("[Enemy] Should spawn powerup at: ", global_position)
+	print("%s Should spawn powerup at: %v" % [_get_log_prefix(), global_position])

@@ -1,9 +1,12 @@
 ## Wave Manager for Space Shooter
 ##
 ## Manages enemy waves, spawning patterns, and difficulty progression.
-## Uses SpawnerComponent from MilitiaForge2D.
+## Uses EnemyFactory for creating enemy instances.
 
 extends Node2D
+
+# Preload EnemyFactory
+const EnemyFactory = preload("res://examples/space_shooter/scripts/enemy_factory.gd")
 
 #region Signals
 signal wave_started(wave_number: int)
@@ -128,27 +131,12 @@ func _update_spawning(delta: float) -> void:
 		_spawn_enemy(enemies_to_spawn.pop_front())
 
 func _spawn_enemy(enemy_data: Dictionary) -> void:
-	# Load the appropriate enemy scene
-	var enemy_scene: PackedScene = null
-	match enemy_data["type"]:
-		"Basic":
-			enemy_scene = load("res://examples/space_shooter/scenes/enemy_basic.tscn")
-		"Fast":
-			enemy_scene = load("res://examples/space_shooter/scenes/enemy_fast.tscn")
-		"Tank":
-			enemy_scene = load("res://examples/space_shooter/scenes/enemy_tank.tscn")
+	# Use EnemyFactory to create enemy with configuration
+	var enemy = EnemyFactory.create_from_wave_data(enemy_data)
 
-	if not enemy_scene:
-		print("[WaveManager] ERROR: Could not load enemy scene for type: %s" % enemy_data["type"])
+	if not enemy:
+		push_error("[WaveManager] Failed to create enemy from wave data: %s" % enemy_data)
 		return
-
-	# Instantiate enemy from scene
-	var enemy = enemy_scene.instantiate()
-
-	# Override properties from wave data (before adding to tree)
-	enemy.health = enemy_data["health"]
-	enemy.speed = enemy_data["speed"]
-	enemy.score_value = enemy_data["score"]
 
 	# Random spawn position at top of play area (between HUD panels)
 	# Play area is 640px wide, starting at x=320
@@ -160,6 +148,14 @@ func _spawn_enemy(enemy_data: Dictionary) -> void:
 		-50
 	)
 
+	# IMPORTANT: Connect to enemy_died signal BEFORE adding to tree
+	# This prevents race condition where enemy could die before we connect
+	if enemy.has_signal("enemy_died"):
+		enemy.enemy_died.connect(_on_enemy_died)
+		print("[WaveManager] Connected to %s enemy signals" % enemy_data["type"])
+	else:
+		push_error("[WaveManager] ERROR: Enemy %s missing enemy_died signal!" % enemy_data["type"])
+
 	# Find EnemiesContainer or use parent as fallback
 	var container = get_parent().get_node_or_null("EnemiesContainer")
 	if container:
@@ -167,13 +163,7 @@ func _spawn_enemy(enemy_data: Dictionary) -> void:
 	else:
 		get_parent().add_child(enemy)
 
-	# Connect signals (wait one frame for enemy to be ready)
-	await get_tree().process_frame
-	if is_instance_valid(enemy) and enemy.has_signal("enemy_died"):
-		enemy.enemy_died.connect(_on_enemy_died)
-		print("[WaveManager] Spawned %s enemy at %v with %d health" % [enemy_data["type"], enemy.global_position, enemy.health])
-	else:
-		print("[WaveManager] ERROR: Enemy %s not valid or missing enemy_died signal!" % enemy_data["type"])
+	print("[WaveManager] Spawned %s enemy at %v with %d health" % [enemy_data["type"], enemy.global_position, enemy.health])
 
 func _on_enemy_died(enemy: Node, score_value: int) -> void:
 	enemies_remaining -= 1
