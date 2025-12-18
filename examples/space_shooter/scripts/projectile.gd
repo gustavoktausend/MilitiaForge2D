@@ -15,8 +15,8 @@ extends Node2D
 #region Private Variables
 var direction: Vector2 = Vector2.UP
 var time_alive: float = 0.0
-var hitbox: Node = null  # Reference to Hitbox for cleanup
-var is_being_destroyed: bool = false  # Prevent multiple destruction calls
+var hitbox: Node = null # Reference to Hitbox for cleanup
+var is_being_destroyed: bool = false # Prevent multiple destruction calls
 #endregion
 
 func _ready() -> void:
@@ -29,46 +29,75 @@ func _ready() -> void:
 	_create_hitbox()
 
 func _create_visual() -> void:
-	var visual = ColorRect.new()
+	# Try to load sprite first
+	var sprite_path: String
+	var target_size: Vector2
+	var fallback_color: Color
+	
 	if is_player_projectile:
-		# Updated for 1920x1080: increased 50% (4x12 -> 6x18)
-		visual.size = Vector2(6, 18)
-		visual.position = Vector2(-3, -9)
-		visual.color = Color(0.3, 0.8, 1.0)  # Cyan
+		sprite_path = "res://examples/space_shooter/assets/sprites/player/projectiles/laser_blue.png"
+		# Updated for 1920x1080: balanced size for visibility (4x12 -> 14x42)
+		target_size = Vector2(14, 42)
+		fallback_color = Color(0.3, 0.8, 1.0) # Cyan
 	else:
+		sprite_path = "res://examples/space_shooter/assets/sprites/enemies/projectiles/laser_red.png"
 		# Updated for 1920x1080: increased 50% (6x6 -> 9x9)
-		visual.size = Vector2(9, 9)
-		visual.position = Vector2(-4.5, -4.5)
-		visual.color = Color(1.0, 0.3, 0.3)  # Red
-
-	add_child(visual)
-
-	# Add glow effect
-	var glow = ColorRect.new()
-	glow.size = visual.size * 1.5
-	glow.position = visual.position - visual.size * 0.25
-	glow.color = visual.color
-	glow.color.a = 0.3
-	add_child(glow)
-	glow.z_index = -1
+		target_size = Vector2(9, 9)
+		fallback_color = Color(1.0, 0.3, 0.3) # Red
+	
+	# Check if sprite exists
+	var sprite_texture = load(sprite_path) if ResourceLoader.exists(sprite_path) else null
+	
+	if sprite_texture:
+		# Use sprite
+		var sprite = Sprite2D.new()
+		sprite.texture = sprite_texture
+		sprite.name = "ProjectileSprite"
+		sprite.centered = true # Use Godot's built-in centering
+		
+		# Calculate scale to match target size
+		var texture_size = sprite_texture.get_size()
+		var scale_factor = target_size / texture_size
+		sprite.scale = scale_factor
+		
+		add_child(sprite)
+		print("[Projectile] Using sprite: %s (scale: %s, size: %s)" % [sprite_path, scale_factor, target_size])
+	else:
+		# Fallback to ColorRect
+		print("[Projectile] Sprite not found (%s), using ColorRect fallback" % sprite_path)
+		
+		var visual = ColorRect.new()
+		visual.size = target_size
+		visual.position = - target_size / 2.0
+		visual.color = fallback_color
+		add_child(visual)
+		
+		# Add glow effect
+		var glow = ColorRect.new()
+		glow.size = visual.size * 1.5
+		glow.position = visual.position - visual.size * 0.25
+		glow.color = visual.color
+		glow.color.a = 0.3
+		add_child(glow)
+		glow.z_index = -1
 
 func _create_hitbox() -> void:
 	# Create Hitbox component that will damage Hurtboxes
-	hitbox = Hitbox.new()  # Store reference
+	hitbox = Hitbox.new() # Store reference
 	hitbox.name = "ProjectileHitbox"
 	hitbox.damage = damage
-	hitbox.hit_once_per_target = true  # Only hit once per target
+	hitbox.hit_once_per_target = true # Only hit once per target
 	# NOTE: Don't use one_shot here - it causes race condition with Hurtbox checking hitbox.active
 	# The projectile will be destroyed via queue_free() in _on_hitbox_hit callback instead
-	hitbox.debug_hitbox = true  # Enable debug
+	hitbox.debug_hitbox = true # Enable debug
 
 	# Setup collision layers
 	if is_player_projectile:
-		hitbox.collision_layer = 4  # Player projectile layer
-		hitbox.collision_mask = 2   # Enemy layer
+		hitbox.collision_layer = 4 # Player projectile layer
+		hitbox.collision_mask = 2 # Enemy layer
 	else:
-		hitbox.collision_layer = 8  # Enemy projectile layer
-		hitbox.collision_mask = 1   # Player layer
+		hitbox.collision_layer = 8 # Enemy projectile layer
+		hitbox.collision_mask = 1 # Player layer
 
 	# IMPORTANT: Explicitly enable monitoring and monitorable for Area2D collision
 	hitbox.monitoring = true
@@ -78,8 +107,8 @@ func _create_hitbox() -> void:
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
 	if is_player_projectile:
-		# Updated for 1920x1080: increased 50% (4x12 -> 6x18)
-		shape.size = Vector2(6, 18)
+		# Updated for 1920x1080: balanced size for visibility (4x12 -> 14x42)
+		shape.size = Vector2(14, 42)
 	else:
 		# Updated for 1920x1080: increased 50% (6x6 -> 9x9)
 		shape.size = Vector2(9, 9)

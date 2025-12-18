@@ -87,6 +87,28 @@ Collision:
 + shape.size = Vector2(9, 9)  // +50%
 ```
 
+#### **🎨 Sprite System:**
+
+**✅ Sprites implementados!** Os projéteis agora usam sprites reais ao invés de `ColorRect`:
+
+```diff
+Player Projectile:
++ Sprite: res://examples/space_shooter/assets/sprites/player/projectiles/laser_blue.png
++ Automaticamente escalado para 6x18px
++ Fallback para ColorRect azul se sprite não existir
+
+Enemy Projectile:
++ Sprite: res://examples/space_shooter/assets/sprites/enemies/projectiles/laser_red.png
++ Automaticamente escalado para 9x9px
++ Fallback para ColorRect vermelho se sprite não existir
+```
+
+**Como funciona:**
+- `Sprite2D` carregado dinamicamente
+- Escala calculada automaticamente: `target_size / texture_size`
+- Centralização via `sprite.offset = texture_size / 2.0`
+- Sistema robusto: se sprite não existir, usa ColorRect tradicional
+
 ---
 
 ## 📊 Tabela de Conversão

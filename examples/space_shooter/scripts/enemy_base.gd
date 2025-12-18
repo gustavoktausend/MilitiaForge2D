@@ -30,8 +30,8 @@ enum MovementPattern {
 	ZIGZAG,
 	CIRCULAR,
 	SINE_WAVE,
-	TRACKING,  # Follows player
-	STOP_AND_SHOOT  # Descends to a position and stops to shoot
+	TRACKING, # Follows player
+	STOP_AND_SHOOT # Descends to a position and stops to shoot
 }
 #endregion
 
@@ -39,24 +39,24 @@ enum MovementPattern {
 var host: ComponentHost
 var movement_component: BoundedMovement
 var health_component: HealthComponent
-var weapon: Node  # SimpleWeapon instance
+var weapon: Node # SimpleWeapon instance
 var particles: ParticleEffectComponent
-var physics_body: CharacterBody2D  # Reference to the physics body
+var physics_body: CharacterBody2D # Reference to the physics body
 #endregion
 
 #region Private Variables
 var player: Node2D = null
 var movement_time: float = 0.0
 var initial_x: float = 0.0
-var has_stopped: bool = false  # For STOP_AND_SHOOT pattern
-var stop_position_y: float = 150.0  # Y position where enemy stops
-var shoot_timer: float = 0.0  # Timer for shooting
-var lateral_movement_timer: float = 0.0  # For lateral movement while stopped
-var zigzag_direction: float = 1.0  # Direction for zigzag movement (1.0 = right, -1.0 = left)
-var _is_dying: bool = false  # Prevent multiple death notifications
-var _is_destroyed: bool = false  # Prevent multiple queue_free calls
-var _enemy_id: int = 0  # Unique ID for debugging
-static var _next_id: int = 0  # Global counter for enemy IDs
+var has_stopped: bool = false # For STOP_AND_SHOOT pattern
+var stop_position_y: float = 150.0 # Y position where enemy stops
+var shoot_timer: float = 0.0 # Timer for shooting
+var lateral_movement_timer: float = 0.0 # For lateral movement while stopped
+var zigzag_direction: float = 1.0 # Direction for zigzag movement (1.0 = right, -1.0 = left)
+var _is_dying: bool = false # Prevent multiple death notifications
+var _is_destroyed: bool = false # Prevent multiple queue_free calls
+var _enemy_id: int = 0 # Unique ID for debugging
+static var _next_id: int = 0 # Global counter for enemy IDs
 #endregion
 
 func _ready() -> void:
@@ -108,7 +108,7 @@ func _setup_components() -> void:
 	health_component = HealthComponent.new()
 	health_component.max_health = health
 	health_component.can_die = true
-	health_component.debug_health = true  # Enable debug to see health changes
+	health_component.debug_health = true # Enable debug to see health changes
 
 	print("[Enemy] %s HealthComponent class name: %s" % [enemy_type, health_component.get_class()])
 	host.add_component(health_component)
@@ -122,7 +122,7 @@ func _setup_components() -> void:
 	# Hurtbox will search upward: Hurtbox -> Body -> finds ComponentHost as child
 	var hurtbox = Hurtbox.new()
 	hurtbox.name = "Hurtbox"
-	hurtbox.debug_hurtbox = true  # Enable debug to see if it's working
+	hurtbox.debug_hurtbox = true # Enable debug to see if it's working
 
 	# IMPORTANT: Disable Hurtbox during setup to prevent projectiles hitting before ready
 	hurtbox.active = false
@@ -132,8 +132,11 @@ func _setup_components() -> void:
 	# Create and add collision shape FIRST
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	# Updated for 1920x1080: increased 50% (32x32 -> 48x48)
-	shape.size = Vector2(48, 48)
+	# Size depends on enemy type: Tank is double size (96x96), others are 48x48
+	if enemy_type == "Tank":
+		shape.size = Vector2(96, 96) # Tank is double size
+	else:
+		shape.size = Vector2(48, 48) # Basic, Fast, and others
 	collision.shape = shape
 	hurtbox.add_child(collision)
 
@@ -157,9 +160,9 @@ func _setup_components() -> void:
 	])
 
 	# NOW configure collision layers and monitoring (after node is in tree)
-	hurtbox.collision_layer = 2  # Enemy layer
-	hurtbox.collision_mask = 4   # Player projectile layer
-	hurtbox.active = true  # Enable Hurtbox now that setup is complete
+	hurtbox.collision_layer = 2 # Enemy layer
+	hurtbox.collision_mask = 4 # Player projectile layer
+	hurtbox.active = true # Enable Hurtbox now that setup is complete
 	hurtbox.monitoring = true
 	hurtbox.monitorable = true
 
@@ -177,18 +180,18 @@ func _setup_components() -> void:
 	movement_component.max_speed = speed
 	movement_component.acceleration = 500.0
 	movement_component.boundary_mode = BoundedMovement.BoundaryMode.DESTROY
-	movement_component.use_viewport_bounds = false  # Use custom bounds for play area
+	movement_component.use_viewport_bounds = false # Use custom bounds for play area
 
 	# Set custom bounds to match the play area (between HUD panels)
 	await get_tree().process_frame
 	var viewport_size = get_viewport().get_visible_rect().size
 	# Updated for 1920x1080: side panels = 480px, play area = 960px
 	var play_area_bounds = Rect2(
-		Vector2(480, -100),  # Start after left panel, allow spawning above screen
-		Vector2(960, viewport_size.y + 200)  # Play area width x extended height
+		Vector2(480, -100), # Start after left panel, allow spawning above screen
+		Vector2(960, viewport_size.y + 200) # Play area width x extended height
 	)
 	movement_component.set_custom_bounds(play_area_bounds)
-	movement_component.boundary_margin = Vector2(0, 0)  # No margin, destroy at exact boundaries
+	movement_component.boundary_margin = Vector2(0, 0) # No margin, destroy at exact boundaries
 
 	# Connect to boundary signal to handle enemy leaving screen
 	if movement_component.has_signal("destroyed_by_boundary"):
@@ -208,7 +211,7 @@ func _setup_components() -> void:
 		weapon.projectile_damage = projectile_damage
 		weapon.projectile_speed = 400.0
 		weapon.auto_fire = false
-		weapon.is_player_weapon = false  # Enemy weapon, projectiles should target player
+		weapon.is_player_weapon = false # Enemy weapon, projectiles should target player
 
 		# Load projectile scene
 		var projectile_scene_instance = load("res://examples/space_shooter/scenes/projectile.tscn")
@@ -229,36 +232,74 @@ func _setup_components() -> void:
 	hitbox.hit_once_per_target = true
 	var hitbox_collision = CollisionShape2D.new()
 	var hitbox_shape = RectangleShape2D.new()
-	hitbox_shape.size = Vector2(28, 28)
+	# Hitbox size depends on enemy type: Tank is double size
+	if enemy_type == "Tank":
+		hitbox_shape.size = Vector2(56, 56) # Tank hitbox (slightly smaller than visual)
+	else:
+		hitbox_shape.size = Vector2(28, 28) # Basic, Fast, and others
 	hitbox_collision.shape = hitbox_shape
 	hitbox.add_child(hitbox_collision)
 	physics_body.add_child(hitbox)
 
 func _setup_visuals() -> void:
-	# Simple colored rectangle based on enemy type
 	# IMPORTANT: Add visual to physics_body so it moves with the entity
 	if not physics_body:
 		push_error("[Enemy] Cannot setup visuals - physics_body is null!")
 		return
-
-	var visual = ColorRect.new()
-	visual.name = "Visual"
-	# Updated for 1920x1080: increased 50% (32x32 -> 48x48)
-	visual.size = Vector2(48, 48)
-	visual.position = Vector2(-24, -24)
-
+	
+	# Try to load sprite based on enemy type
+	var sprite_path: String
+	var fallback_color: Color
+	var target_size: Vector2
+	
 	match enemy_type:
 		"Basic":
-			visual.color = Color(1.0, 0.3, 0.3)  # Red
+			sprite_path = "res://examples/space_shooter/assets/sprites/enemies/ships/enemy_basic.png"
+			fallback_color = Color(1.0, 0.3, 0.3) # Red
+			target_size = Vector2(48, 48)
 		"Fast":
-			visual.color = Color(1.0, 0.8, 0.2)  # Yellow
+			sprite_path = "res://examples/space_shooter/assets/sprites/enemies/ships/enemy_fast.png"
+			fallback_color = Color(1.0, 0.8, 0.2) # Yellow
+			target_size = Vector2(48, 48)
 		"Tank":
-			visual.color = Color(0.5, 0.2, 0.5)  # Purple
+			sprite_path = "res://examples/space_shooter/assets/sprites/enemies/ships/enemy_tank.png"
+			fallback_color = Color(0.5, 0.2, 0.5) # Purple
+			target_size = Vector2(96, 96) # Double size for Tank!
 		_:
-			visual.color = Color(0.8, 0.8, 0.8)  # Gray
-
-	physics_body.add_child(visual)
-	print("[Enemy] %s visual created (color: %v)" % [enemy_type, visual.color])
+			sprite_path = ""
+			fallback_color = Color(0.8, 0.8, 0.8) # Gray
+			target_size = Vector2(48, 48)
+	
+	# Try to load sprite
+	var sprite_texture = load(sprite_path) if sprite_path != "" and ResourceLoader.exists(sprite_path) else null
+	
+	if sprite_texture:
+		# Use sprite
+		var sprite = Sprite2D.new()
+		sprite.texture = sprite_texture
+		sprite.name = "EnemySprite"
+		sprite.centered = true # Use Godot's built-in centering
+		
+		# Calculate scale to match target size
+		var texture_size = sprite_texture.get_size()
+		var scale_factor = target_size / texture_size
+		sprite.scale = scale_factor
+		
+		physics_body.add_child(sprite)
+		print("[Enemy] %s using sprite: %s (scale: %s, size: %s)" % [enemy_type, sprite_path, scale_factor, target_size])
+	else:
+		# Fallback to ColorRect
+		if sprite_path != "":
+			print("[Enemy] %s sprite not found (%s), using ColorRect fallback" % [enemy_type, sprite_path])
+		
+		var visual = ColorRect.new()
+		visual.name = "Visual"
+		visual.size = target_size
+		visual.position = - target_size / 2.0
+		visual.color = fallback_color
+		
+		physics_body.add_child(visual)
+		print("[Enemy] %s visual created (color: %v, size: %s)" % [enemy_type, visual.color, target_size])
 
 func _connect_signals() -> void:
 	health_component.died.connect(_on_enemy_died)
@@ -288,22 +329,22 @@ func _update_movement(_delta: float) -> void:
 			# Check if near boundaries and reverse direction
 			if physics_body:
 				var current_x = physics_body.global_position.x
-				var left_bound = 320 + 30  # Left boundary + margin
-				var right_bound = 960 - 30  # Right boundary - margin
+				var left_bound = 320 + 30 # Left boundary + margin
+				var right_bound = 960 - 30 # Right boundary - margin
 
 				# Reverse direction if near boundaries
 				if current_x <= left_bound and zigzag_direction < 0:
-					zigzag_direction = 1.0  # Change to right
+					zigzag_direction = 1.0 # Change to right
 				elif current_x >= right_bound and zigzag_direction > 0:
-					zigzag_direction = -1.0  # Change to left
+					zigzag_direction = -1.0 # Change to left
 
 			# Apply zigzag movement with current direction
 			direction.x = zigzag_direction
 
 		MovementPattern.CIRCULAR:
 			# Circular pattern with more emphasis on downward movement
-			direction.x = cos(movement_time * 2.0) * 0.4  # Reduced lateral movement
-			direction.y = 0.8 + sin(movement_time * 2.0) * 0.2  # More downward bias
+			direction.x = cos(movement_time * 2.0) * 0.4 # Reduced lateral movement
+			direction.y = 0.8 + sin(movement_time * 2.0) * 0.2 # More downward bias
 
 		MovementPattern.SINE_WAVE:
 			direction = Vector2.DOWN
@@ -313,7 +354,7 @@ func _update_movement(_delta: float) -> void:
 		MovementPattern.TRACKING:
 			if player:
 				direction = (player.global_position - global_position).normalized()
-				direction = direction * 0.3 + Vector2.DOWN * 0.7  # Mix with downward
+				direction = direction * 0.3 + Vector2.DOWN * 0.7 # Mix with downward
 
 		MovementPattern.STOP_AND_SHOOT:
 			# Descend until reaching stop position
@@ -344,7 +385,7 @@ func _update_shooting(delta: float) -> void:
 	# Fire rate depends on movement pattern
 	var current_fire_rate = fire_rate
 	if movement_pattern == MovementPattern.STOP_AND_SHOOT and has_stopped:
-		current_fire_rate = fire_rate * 0.5  # Shoot faster when stopped
+		current_fire_rate = fire_rate * 0.5 # Shoot faster when stopped
 
 	if shoot_timer >= current_fire_rate:
 		shoot_timer = 0.0
@@ -373,7 +414,7 @@ func _on_enemy_died() -> void:
 	enemy_died.emit(self, score_value)
 
 	# Chance to drop power-up
-	if randf() < 0.15:  # 15% chance
+	if randf() < 0.15: # 15% chance
 		_spawn_powerup()
 
 	print("[Enemy] %s calling queue_free()" % enemy_type)
@@ -388,7 +429,7 @@ func _on_boundary_reached(_boundary: String) -> void:
 
 	# Emit signal so WaveManager knows to decrement enemy count
 	print("[Enemy] %s left screen, emitting enemy_died signal (no score)" % enemy_type)
-	enemy_died.emit(self, 0)  # 0 score since player didn't destroy it
+	enemy_died.emit(self, 0) # 0 score since player didn't destroy it
 	_destroy_safely()
 
 func _on_destroyed_by_boundary(_edge) -> void:
@@ -399,7 +440,7 @@ func _on_destroyed_by_boundary(_edge) -> void:
 	_is_dying = true
 
 	print("[Enemy] %s destroyed by boundary, emitting enemy_died signal (no score)" % enemy_type)
-	enemy_died.emit(self, 0)  # 0 score since player didn't destroy it
+	enemy_died.emit(self, 0) # 0 score since player didn't destroy it
 	_destroy_safely()
 
 func _destroy_safely() -> void:

@@ -197,3 +197,69 @@ func get_total_waves() -> int:
 
 func get_enemies_remaining() -> int:
 	return enemies_remaining
+
+## NEW: Starts a wave from a WaveConfig resource (Phase System integration)
+func start_wave_from_config(wave_config: Resource) -> void:
+	if not wave_config:
+		push_error("[WaveManager] start_wave_from_config called with null config!")
+		return
+
+	print("[WaveManager] Starting wave from WaveConfig: %s" % wave_config.wave_name)
+
+	# Convert WaveConfig to old wave_data format
+	var wave_data = _convert_wave_config_to_data(wave_config)
+
+	# Prepare enemies to spawn
+	_prepare_wave_enemies(wave_data)
+
+	# Start spawning
+	is_spawning = true
+	spawn_timer = 0.0
+
+	# Note: Don't emit wave_started here - PhaseManager handles that
+
+## Converts WaveConfig resource to internal wave_data Dictionary
+func _convert_wave_config_to_data(wave_config: Resource) -> Dictionary:
+	var wave_data: Dictionary = {
+		"enemies": [],
+		"spawn_delay": 0.8  # Default
+	}
+
+	# Process each enemy group in the wave config
+	if wave_config.has("enemy_groups"):
+		var enemy_groups = wave_config.get("enemy_groups")
+
+		for group in enemy_groups:
+			if not group:
+				continue
+
+			# Get spawn config from group
+			var spawn_config = group.to_spawn_config() if group.has_method("to_spawn_config") else {}
+
+			# Create enemy data entry
+			var enemy_data = {
+				"type": spawn_config.get("enemy_type", "Basic"),
+				"count": spawn_config.get("count", 1),
+				"health": spawn_config.get("health", 20),
+				"speed": spawn_config.get("speed", 100.0),
+				"score": spawn_config.get("score_value", 100),
+				"damage_to_player": spawn_config.get("damage_to_player", 20),
+				"movement_pattern": spawn_config.get("movement_pattern", 0),
+				"can_shoot": spawn_config.get("can_shoot", false),
+				"fire_rate": spawn_config.get("fire_rate", 1.5)
+			}
+
+			wave_data["enemies"].append(enemy_data)
+
+		# Use average spawn interval from groups
+		if enemy_groups.size() > 0:
+			var total_interval = 0.0
+			var count = 0
+			for group in enemy_groups:
+				if group.has("spawn_interval"):
+					total_interval += group.get("spawn_interval")
+					count += 1
+			if count > 0:
+				wave_data["spawn_delay"] = total_interval / count
+
+	return wave_data
