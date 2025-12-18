@@ -31,12 +31,14 @@ func _ready() -> void:
 func _create_visual() -> void:
 	var visual = ColorRect.new()
 	if is_player_projectile:
-		visual.size = Vector2(4, 12)
-		visual.position = Vector2(-2, -6)
+		# Updated for 1920x1080: increased 50% (4x12 -> 6x18)
+		visual.size = Vector2(6, 18)
+		visual.position = Vector2(-3, -9)
 		visual.color = Color(0.3, 0.8, 1.0)  # Cyan
 	else:
-		visual.size = Vector2(6, 6)
-		visual.position = Vector2(-3, -3)
+		# Updated for 1920x1080: increased 50% (6x6 -> 9x9)
+		visual.size = Vector2(9, 9)
+		visual.position = Vector2(-4.5, -4.5)
 		visual.color = Color(1.0, 0.3, 0.3)  # Red
 
 	add_child(visual)
@@ -76,9 +78,11 @@ func _create_hitbox() -> void:
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
 	if is_player_projectile:
-		shape.size = Vector2(4, 12)
+		# Updated for 1920x1080: increased 50% (4x12 -> 6x18)
+		shape.size = Vector2(6, 18)
 	else:
-		shape.size = Vector2(6, 6)
+		# Updated for 1920x1080: increased 50% (6x6 -> 9x9)
+		shape.size = Vector2(9, 9)
 	collision.shape = shape
 	hitbox.add_child(collision)
 

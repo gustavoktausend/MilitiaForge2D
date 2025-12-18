@@ -6,8 +6,10 @@
 extends CanvasLayer
 
 #region Constants
-const PLAY_AREA_WIDTH: float = 640.0  # Narrower play area
-const SIDE_PANEL_WIDTH: float = 320.0  # Width of each side panel
+# Updated for 1920x1080 resolution (was 1280x720)
+# Keeping same proportions: side panels = 25% each, play area = 50%
+const PLAY_AREA_WIDTH: float = 960.0  # Play area (50% of 1920)
+const SIDE_PANEL_WIDTH: float = 480.0  # Side panels (25% of 1920 each)
 #endregion
 
 #region Node References

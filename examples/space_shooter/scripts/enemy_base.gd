@@ -132,7 +132,8 @@ func _setup_components() -> void:
 	# Create and add collision shape FIRST
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(32, 32)
+	# Updated for 1920x1080: increased 50% (32x32 -> 48x48)
+	shape.size = Vector2(48, 48)
 	collision.shape = shape
 	hurtbox.add_child(collision)
 
@@ -181,9 +182,10 @@ func _setup_components() -> void:
 	# Set custom bounds to match the play area (between HUD panels)
 	await get_tree().process_frame
 	var viewport_size = get_viewport().get_visible_rect().size
+	# Updated for 1920x1080: side panels = 480px, play area = 960px
 	var play_area_bounds = Rect2(
-		Vector2(320, -100),  # Start after left panel, allow spawning above screen
-		Vector2(640, viewport_size.y + 200)  # Play area width x extended height
+		Vector2(480, -100),  # Start after left panel, allow spawning above screen
+		Vector2(960, viewport_size.y + 200)  # Play area width x extended height
 	)
 	movement_component.set_custom_bounds(play_area_bounds)
 	movement_component.boundary_margin = Vector2(0, 0)  # No margin, destroy at exact boundaries
@@ -241,8 +243,9 @@ func _setup_visuals() -> void:
 
 	var visual = ColorRect.new()
 	visual.name = "Visual"
-	visual.size = Vector2(32, 32)
-	visual.position = Vector2(-16, -16)
+	# Updated for 1920x1080: increased 50% (32x32 -> 48x48)
+	visual.size = Vector2(48, 48)
+	visual.position = Vector2(-24, -24)
 
 	match enemy_type:
 		"Basic":

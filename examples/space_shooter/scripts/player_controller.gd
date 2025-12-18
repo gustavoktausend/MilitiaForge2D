@@ -65,7 +65,8 @@ func _setup_components() -> void:
 	# Create collision shape
 	var collision = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(32, 48)
+	# Updated for 1920x1080: increased 50% (32x48 -> 48x72)
+	shape.size = Vector2(48, 72)
 	collision.shape = shape
 	hurtbox.add_child(collision)
 	physics_body.add_child(hurtbox)
@@ -83,9 +84,10 @@ func _setup_components() -> void:
 	# Wait for viewport to be ready, then set bounds
 	await get_tree().process_frame
 	var viewport_size = get_viewport().get_visible_rect().size
+	# Updated for 1920x1080: side panels = 480px, play area = 960px
 	var play_area_bounds = Rect2(
-		Vector2(320, 0),  # Start after left panel (320px)
-		Vector2(640, viewport_size.y)  # Play area width (640px) x full height
+		Vector2(480, 0),  # Start after left panel (480px)
+		Vector2(960, viewport_size.y)  # Play area width (960px) x full height
 	)
 	movement.set_custom_bounds(play_area_bounds)
 	movement.boundary_margin = Vector2(16, 16)  # Smaller margin since play area is narrow
@@ -179,20 +181,43 @@ func _setup_input_actions() -> void:
 	input_component.add_action("fire", [KEY_SPACE])
 
 func _setup_visuals() -> void:
-	# Add a simple visual representation to the physics body
-	var visual = ColorRect.new()
-	visual.size = Vector2(32, 48)
-	visual.position = Vector2(-16, -24)
-	visual.color = Color(0.2, 0.6, 1.0)  # Blue ship
-	visual.z_index = 1
-	physics_body.add_child(visual)
+	# Try to load player sprite
+	var sprite_path = "res://examples/space_shooter/assets/sprites/player/ship.png"
 
-	# Add engine glow
-	var glow = ColorRect.new()
-	glow.size = Vector2(16, 8)
-	glow.position = Vector2(-8, 20)
-	glow.color = Color(1.0, 0.5, 0.2, 0.7)  # Orange glow
-	visual.add_child(glow)
+	if ResourceLoader.exists(sprite_path):
+		# Use sprite if available
+		var sprite = Sprite2D.new()
+		sprite.texture = load(sprite_path)
+		sprite.centered = true  # Center the sprite on the pivot
+
+		# Scale down to reasonable size (adjust as needed)
+		# Updated for 1920x1080: increased 50% for better visibility
+		# Original: 48px, New: 72px (48 * 1.5)
+		var desired_height = 72.0
+		var texture_height = sprite.texture.get_height()
+		var scale_factor = desired_height / texture_height
+		sprite.scale = Vector2(scale_factor, scale_factor)
+
+		sprite.z_index = 1
+		physics_body.add_child(sprite)
+		print("[Player] Loaded sprite from: %s (scale: %.2f)" % [sprite_path, scale_factor])
+	else:
+		# Fallback to ColorRect if sprite not found
+		print("[Player] Sprite not found at %s, using placeholder" % sprite_path)
+		var visual = ColorRect.new()
+		# Updated for 1920x1080: increased 50% (32x48 -> 48x72)
+		visual.size = Vector2(48, 72)
+		visual.position = Vector2(-24, -36)
+		visual.color = Color(0.2, 0.6, 1.0)  # Blue ship
+		visual.z_index = 1
+		physics_body.add_child(visual)
+
+		# Add engine glow
+		var glow = ColorRect.new()
+		glow.size = Vector2(24, 12)  # 50% larger
+		glow.position = Vector2(-12, 30)
+		glow.color = Color(1.0, 0.5, 0.2, 0.7)  # Orange glow
+		visual.add_child(glow)
 
 func _connect_signals() -> void:
 	print("╔═══════════════════════════════════════════════════════╗")

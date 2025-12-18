@@ -139,9 +139,9 @@ func _spawn_enemy(enemy_data: Dictionary) -> void:
 		return
 
 	# Random spawn position at top of play area (between HUD panels)
-	# Play area is 640px wide, starting at x=320
-	var play_area_center = 320 + 320  # Left panel + half of play area
-	var play_area_half_width = 320  # Half of 640px play area
+	# Updated for 1920x1080: Play area is 960px wide, starting at x=480
+	var play_area_center = 480 + 480  # Left panel + half of play area
+	var play_area_half_width = 480  # Half of 960px play area
 	var spawn_x = randf_range(-play_area_half_width + 50, play_area_half_width - 50)  # Keep enemies away from edges
 	enemy.global_position = Vector2(
 		play_area_center + spawn_x,
