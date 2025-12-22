@@ -75,13 +75,16 @@ func _ready() -> void:
 	initial_x = global_position.x
 	print("[Enemy] %s enemy ready! Physics body at: %v" % [enemy_type, physics_body.global_position if physics_body else Vector2.ZERO])
 
-	# Find player
-	call_deferred("_find_player")
+	# Player will be injected via set_target() - Dependency Injection pattern
 
-func _find_player() -> void:
-	var players = get_tree().get_nodes_in_group("player")
-	if players.size() > 0:
-		player = players[0]
+## Dependency Injection: Set the target player for tracking/shooting
+## This decouples Enemy from scene tree structure
+func set_target(target_player: Node2D) -> void:
+	player = target_player
+	if player:
+		print("[Enemy #%d] Target player set: %s" % [_enemy_id, player.name])
+	else:
+		print("[Enemy #%d] Target player cleared" % _enemy_id)
 
 func _setup_components() -> void:
 	# Add Physics Body FIRST (at root level)
@@ -212,6 +215,14 @@ func _setup_components() -> void:
 		weapon.projectile_speed = 400.0
 		weapon.auto_fire = false
 		weapon.is_player_weapon = false # Enemy weapon, projectiles should target player
+
+		# Dependency Injection: Inject projectiles container into weapon
+		var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
+		if projectiles_container and weapon.has_method("setup_weapon"):
+			weapon.setup_weapon(projectiles_container)
+			print("[Enemy] %s weapon: Injected ProjectilesContainer" % enemy_type)
+		else:
+			print("[Enemy] %s weapon: ProjectilesContainer not found, using fallback" % enemy_type)
 
 		# Load projectile scene
 		var projectile_scene_instance = load("res://examples/space_shooter/scenes/projectile.tscn")

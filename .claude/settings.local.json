@@ -4,7 +4,12 @@
       "Bash(tree:*)",
       "Bash(mkdir:*)",
       "Bash(find:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(cp:*)",
+      "Bash(godot --check-only:*)",
+      "Bash(godot --headless:*)",
+      "Bash(where:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

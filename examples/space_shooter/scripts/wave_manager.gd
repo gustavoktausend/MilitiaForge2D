@@ -12,6 +12,7 @@ const EnemyFactory = preload("res://examples/space_shooter/scripts/enemy_factory
 signal wave_started(wave_number: int)
 signal wave_completed(wave_number: int)
 signal all_waves_completed()
+signal enemy_killed(score_value: int)  # Observer Pattern: Emitted when enemy dies, listeners can react
 #endregion
 
 #region Exports
@@ -74,15 +75,28 @@ var enemies_remaining: int = 0
 var is_spawning: bool = false
 var spawn_timer: float = 0.0
 var enemies_to_spawn: Array[Dictionary] = []
-var game_controller: Node = null
+var player: Node2D = null  # Reference to player for dependency injection into enemies
 #endregion
 
 func _ready() -> void:
 	print("[WaveManager] Ready! Will start first wave in %d seconds..." % start_delay)
+
+	# Find player for dependency injection into enemies
+	_find_player()
+
 	# Start first wave after delay
 	await get_tree().create_timer(start_delay).timeout
 	print("[WaveManager] Delay finished, starting wave...")
 	start_next_wave()
+
+func _find_player() -> void:
+	# Find player once at startup for dependency injection
+	var players = get_tree().get_nodes_in_group("player")
+	if players.size() > 0:
+		player = players[0]
+		print("[WaveManager] Found player for dependency injection: %s" % player.name)
+	else:
+		push_warning("[WaveManager] No player found! Enemies won't be able to track/shoot player")
 
 func _process(delta: float) -> void:
 	if is_spawning:
@@ -156,6 +170,14 @@ func _spawn_enemy(enemy_data: Dictionary) -> void:
 	else:
 		push_error("[WaveManager] ERROR: Enemy %s missing enemy_died signal!" % enemy_data["type"])
 
+	# Dependency Injection: Inject player reference into enemy
+	# This decouples Enemy from needing to search the scene tree
+	if enemy.has_method("set_target"):
+		enemy.set_target(player)
+		print("[WaveManager] Injected player target into %s enemy" % enemy_data["type"])
+	else:
+		push_warning("[WaveManager] Enemy %s doesn't have set_target() method" % enemy_data["type"])
+
 	# Find EnemiesContainer or use parent as fallback
 	var container = get_parent().get_node_or_null("EnemiesContainer")
 	if container:
@@ -168,11 +190,10 @@ func _spawn_enemy(enemy_data: Dictionary) -> void:
 func _on_enemy_died(enemy: Node, score_value: int) -> void:
 	enemies_remaining -= 1
 
-	# Notify game controller about score
-	if game_controller and game_controller.has_method("add_score"):
-		game_controller.add_score(score_value)
-
-	print("[WaveManager] Enemy died! Remaining: %d" % enemies_remaining)
+	# Observer Pattern: Emit signal instead of calling game_controller directly
+	# This decouples WaveManager from GameController - any system can listen
+	print("[WaveManager] Enemy died! Score: %d, Remaining: %d" % [score_value, enemies_remaining])
+	enemy_killed.emit(score_value)
 
 	# Check if wave is complete
 	if enemies_remaining <= 0 and not is_spawning:
@@ -185,9 +206,6 @@ func _complete_wave() -> void:
 	# Start next wave after delay
 	await get_tree().create_timer(wave_delay).timeout
 	start_next_wave()
-
-func set_game_controller(controller: Node) -> void:
-	game_controller = controller
 
 func get_current_wave() -> int:
 	return current_wave

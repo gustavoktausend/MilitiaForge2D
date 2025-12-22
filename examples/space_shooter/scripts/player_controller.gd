@@ -5,6 +5,11 @@
 
 extends Node2D
 
+#region Signals
+## Emitted when player is fully initialized and ready to use
+signal player_ready(player_node: Node2D)
+#endregion
+
 #region Configuration
 @export var move_speed: float = 300.0
 @export var max_health: int = 100
@@ -98,7 +103,7 @@ func _setup_components() -> void:
 	health = HealthComponent.new()
 	health.max_health = max_health
 	health.invincibility_enabled = true
-	health.invincibility_duration = 2.0
+	health.invincibility_duration = 0.5  # Reduced from 2.0 to 0.5 seconds
 	health.debug_health = true
 	host.add_component(health)
 	print("[Player] HealthComponent created: %d/%d HP" % [health.current_health, health.max_health])
@@ -152,6 +157,14 @@ func _setup_components() -> void:
 	simple_weapon.projectile_damage = projectile_damage
 	simple_weapon.projectile_speed = 600.0
 	simple_weapon.auto_fire = false  # Disable auto_fire, we control firing manually
+
+	# Dependency Injection: Inject projectiles container into weapon
+	var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
+	if projectiles_container and simple_weapon.has_method("setup_weapon"):
+		simple_weapon.setup_weapon(projectiles_container)
+		print("[Player] Injected ProjectilesContainer into weapon")
+	else:
+		print("[Player] ProjectilesContainer not found, weapon will use fallback")
 
 	# Load projectile scene
 	var projectile_scene_instance = load("res://examples/space_shooter/scenes/projectile.tscn")
@@ -233,6 +246,10 @@ func _connect_signals() -> void:
 	health.health_changed.connect(_on_health_changed)
 
 	print("[Player] ✅ All signals connected!")
+
+	# Notify that player is fully ready
+	print("[Player] 📡 Emitting player_ready signal...")
+	player_ready.emit(self)
 
 func _process(_delta: float) -> void:
 	_handle_movement()

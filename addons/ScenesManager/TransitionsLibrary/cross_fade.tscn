@@ -1,0 +1,94 @@
+[gd_scene load_steps=5 format=3 uid="uid://crtruu01unnr0"]
+
+[ext_resource type="Script" uid="uid://ca8du2arqs8k4" path="res://addons/ScenesManager/TransitionNode.cs" id="1_pcegj"]
+
+[sub_resource type="Animation" id="Animation_d3i7d"]
+length = 2.0
+tracks/0/type = "method"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(2),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"SendTransitionFinishedSignal"
+}]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("current_scene:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_pcegj"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("current_scene:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_o0c5a"]
+_data = {
+&"RESET": SubResource("Animation_pcegj"),
+&"TRANSITION": SubResource("Animation_d3i7d")
+}
+
+[node name="CrossFade" type="Node" node_paths=PackedStringArray("AnimationPlayer")]
+script = ExtResource("1_pcegj")
+AnimationPlayer = NodePath("TransitionAnimationPlayer")
+metadata/_custom_type_script = "uid://ca8du2arqs8k4"
+
+[node name="TransitionAnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_o0c5a")
+}
+
+[node name="target_scene" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="target_scene"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch = true
+
+[node name="current_scene" type="Control" parent="."]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="current_scene"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch = true

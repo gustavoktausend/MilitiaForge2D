@@ -174,8 +174,10 @@ func take_damage(amount: int, attacker: Node = null) -> int:
 	
 	if debug_health:
 		print("[HealthComponent] Took %d damage: %d -> %d" % [actual_damage, old_health, current_health])
-	
+
 	# Emit signals
+	if debug_health:
+		print("[HealthComponent] Emitting health_changed signal: %d -> %d" % [old_health, current_health])
 	health_changed.emit(current_health, old_health)
 	damage_taken.emit(actual_damage, attacker)
 	

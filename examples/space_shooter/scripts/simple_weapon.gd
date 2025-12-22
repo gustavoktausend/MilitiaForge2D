@@ -21,16 +21,27 @@ var projectiles_container: Node = null
 #endregion
 
 func _ready() -> void:
-	# Find or create projectiles container
-	call_deferred("_find_projectiles_container")
+	# Container will be injected via setup_weapon() - Dependency Injection pattern
+	# Fallback to searching if not injected (for backwards compatibility)
+	if not projectiles_container:
+		call_deferred("_find_projectiles_container")
+
+## Dependency Injection: Setup weapon with projectiles container
+## This decouples SimpleWeapon from scene tree structure
+func setup_weapon(container: Node) -> void:
+	projectiles_container = container
+	print("[SimpleWeapon] Projectiles container injected: %s" % container.name if container else "null")
 
 func _find_projectiles_container() -> void:
+	# Fallback method for backwards compatibility
 	var containers = get_tree().get_nodes_in_group("projectiles_container")
 	if containers.size() > 0:
 		projectiles_container = containers[0]
+		print("[SimpleWeapon] Found projectiles_container via group search (fallback)")
 	else:
-		# Use root as fallback
+		# Use root as last resort
 		projectiles_container = get_tree().root
+		push_warning("[SimpleWeapon] No projectiles_container found, using root as fallback")
 
 func _process(delta: float) -> void:
 	if fire_cooldown > 0:

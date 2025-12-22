@@ -98,16 +98,17 @@ func _setup_wave_manager() -> void:
 		wave_manager.add_to_group("wave_manager")
 		get_tree().root.add_child(wave_manager)
 
-	# Connect signals
-	if wave_manager.has_method("set_game_controller"):
-		wave_manager.set_game_controller(self)
-
+	# Connect signals using Observer Pattern
+	# WaveManager emits events, GameController listens and reacts
 	if wave_manager.has_signal("wave_started"):
 		wave_manager.wave_started.connect(_on_wave_started)
 	if wave_manager.has_signal("wave_completed"):
 		wave_manager.wave_completed.connect(_on_wave_completed)
 	if wave_manager.has_signal("all_waves_completed"):
 		wave_manager.all_waves_completed.connect(_on_all_waves_completed)
+	if wave_manager.has_signal("enemy_killed"):
+		wave_manager.enemy_killed.connect(_on_enemy_killed)
+		print("[GameController] ✅ Connected to WaveManager.enemy_killed signal")
 
 func _setup_hud() -> void:
 	# HUD will be setup when we create the UI
@@ -154,6 +155,7 @@ func toggle_pause() -> void:
 
 func restart_game() -> void:
 	get_tree().paused = false
+	# Simple reload (transition system available for future use)
 	get_tree().reload_current_scene()
 
 func _on_wave_started(wave_number: int) -> void:
@@ -170,6 +172,12 @@ func _on_all_waves_completed() -> void:
 	add_score(5000)
 	await get_tree().create_timer(2.0).timeout
 	_show_victory_screen()
+
+func _on_enemy_killed(score_value: int) -> void:
+	# Observer Pattern: React to enemy death by adding score
+	# WaveManager doesn't know about GameController, just emits the event
+	print("[GameController] Enemy killed! Adding %d points to score" % score_value)
+	add_score(score_value)
 
 func _on_score_changed(new_score: int) -> void:
 	add_score(new_score)

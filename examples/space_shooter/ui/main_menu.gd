@@ -219,12 +219,7 @@ func _load_high_score() -> void:
 func _on_play_pressed() -> void:
 	print("[MainMenu] PLAY pressed - Loading game...")
 
-	# Fade out animation
-	var tween = create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.5)
-	await tween.finished
-
-	# Change to game scene
+	# Simple scene change (transition system available for future use)
 	get_tree().change_scene_to_file(GAME_SCENE_PATH)
 
 func _on_options_pressed() -> void:

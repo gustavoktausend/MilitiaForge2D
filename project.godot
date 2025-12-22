@@ -17,6 +17,10 @@ run/main_scene="res://sandbox/test_scenes/component_foundation_test.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+SceneTransition="*res://addons/scene_transition/scene_transition.gd"
+
 [display]
 
 window/size/viewport_width=1920

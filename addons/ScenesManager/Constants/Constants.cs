@@ -1,0 +1,95 @@
+using Godot;
+
+namespace MoF.Addons.ScenesManager.Constants
+{
+    /// <summary>
+    /// A static class that holds constants for the Scenes Manager add-on.
+    /// </summary>
+    public static partial class AddonConstants
+    {
+        // General constants
+        public const string PluginName = "Scene Manager";
+        public const string PopupMenuSeparator = "------";
+        public const string SettingsFilePath = "Settings/SceneManagerSettings.tres";
+        public const string TransitionFolderPath = "TransitionsLibrary";
+        public const string TransitionNone = "none";
+
+        /// <summary>
+        /// Constants related to transition nodes and animations.
+        /// </summary>
+        public static partial class TransitionNode
+        {
+            public const string TransitionAnimationName = "TRANSITION";
+            public const string AnimationPlayerName = "TransitionAnimationPlayer";
+            public const string TargetSceneContainer = "%target_scene";
+            public const string CurrentSceneContainer = "%current_scene";
+            public const string SubViewportContainerName = "SubViewportContainer";
+            public const string SubViewportName = "SubViewport";
+            public const string TargetSceneVisibilityPath = "target_scene:visible";
+            public const string CurrentSceneVisibilityPath = "current_scene:visible";
+            public const float DefaultAnimationDuration = 2.0f;
+            public const float VisibilityToggleTime = 1.0f;
+            public const int DummySceneFontSize = 50;
+            public const string DummySceneAText = "Scene A";
+            public const string DummySceneBText = "Scene B";
+        }
+
+        /// <summary>
+        /// Constants related to graph nodes.
+        /// </summary>
+        public static partial class GraphNode
+        {
+            public const int NodeVerticalSpace = 6;
+            public const int MaxNumberOfInSlots = 4;
+            public const int MaxNumberOfOutSlots = 4;
+
+            public static partial class Icons
+            {
+                public const string SignalIconTexture = "Assets/Icons/SignalIcon.svg";
+                public const string TrashcanIconTexture = "Assets/Icons/trashcan.svg";
+                public static readonly string[] TransitionIconsTexture = { "Assets/Icons/TransitionIconOff.svg", "Assets/Icons/TransitionIconOn.svg" };
+            }
+
+
+            /// <summary>
+            /// Constants specific to scene graph nodes.
+            /// </summary>
+            public static partial class SceneGraphNode
+            {
+                public const string Title = "Scene Node";
+                public const string GraphNodeStylePanelPath = "Assets/Styles/SceneGraphNodeStylePanel.tres";
+                public const string GraphNodeStyleTitlebarPath = "Assets/Styles/SceneGraphNodeStyleTitlebar.tres";
+                public static readonly Vector2 InitialSize = new(250, 10);
+                public static readonly string[] linkImagesTransition = { "Assets/Icons/LinkTransitionIconOff.svg", "Assets/Icons/LinkTransitionIconOn.svg" };
+                public static readonly Color Color = new("00aeef");
+                public const string FoldablePanelStyleTitlebarPath = "Assets/Styles/foldable_container.tres";
+                public const string TransitionFolderContainerLabelText = "Transition parameters";
+            }
+
+            /// <summary>
+            /// Constants specific to starting app graph nodes.
+            /// </summary>
+            public static partial class StartAppGraphNode
+            {
+                public const string Title = "Game start";
+                public const string descriptionLabelText = "This node is the starting point of your game.";
+                public const string GraphNodeStylePanelPath = "Assets/Styles/StartingAppGraphNodeStylePanel.tres";
+                public const string GraphNodeStyleTitlebarPath = "Assets/Styles/StartingAppGraphNodeStyleTitlebar.tres";
+                public const string StartingAppIconTexturePath = "Assets/Icons/starting-app-icon.svg";
+                public static readonly Vector2 InitialSize = new(250, 10);
+                public static readonly Color Color = new("ec008c");
+            }
+
+            public static partial class QuitAppGraphNode
+            {
+                public const string Title = "Game quit";
+                public const string descriptionLabelText = "This node triggers the end of the game, closing the application.";
+                public const string GraphNodeStylePanelPath = "Assets/Styles/QuitAppGraphNodeStylePanel.tres";
+                public const string GraphNodeStyleTitlebarPath = "Assets/Styles/QuitAppGraphNodeStyleTitlebar.tres";
+                public const string StartingAppIconTexturePath = "Assets/Icons/quit-app-icon.svg";
+                public static readonly Vector2 InitialSize = new(250, 10);
+                public static readonly Color Color = new("fff200");
+            }
+        }
+    }
+}
