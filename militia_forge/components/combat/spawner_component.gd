@@ -35,13 +35,13 @@ signal spawn_limit_reached()
 #region Enums
 ## Spawn patterns
 enum SpawnPattern {
-	SINGLE,        ## Single spawn at center
-	LINE,          ## Horizontal line
-	COLUMN,        ## Vertical column
-	FORMATION,     ## Predefined formation
-	RANDOM,        ## Random positions
-	CIRCLE,        ## Circle pattern
-	WAVE           ## Wave formation
+	SINGLE, ## Single spawn at center
+	LINE, ## Horizontal line
+	COLUMN, ## Vertical column
+	FORMATION, ## Predefined formation
+	RANDOM, ## Random positions
+	CIRCLE, ## Circle pattern
+	WAVE ## Wave formation
 }
 #endregion
 
@@ -109,6 +109,9 @@ enum SpawnPattern {
 ## Whether spawned entities are parented to spawner
 @export var parent_to_spawner: bool = false
 
+## Specific node to parent spawned entities to (overrides parent_to_spawner and root)
+@export var spawn_parent_path: NodePath
+
 ## Whether to print debug messages
 @export var debug_spawner: bool = false
 #endregion
@@ -134,6 +137,9 @@ var _is_active: bool = false
 
 ## Whether waiting between waves
 var _waiting_for_wave: bool = false
+
+## Parent node to spawn into
+var _spawn_parent: Node = null
 #endregion
 
 #region Component Lifecycle
@@ -141,6 +147,11 @@ func component_ready() -> void:
 	if not entity_scene:
 		push_warning("[SpawnerComponent] No entity scene assigned!")
 		return
+	
+	if not spawn_parent_path.is_empty():
+		_spawn_parent = get_node_or_null(spawn_parent_path)
+		if not _spawn_parent:
+			push_warning("[SpawnerComponent] Spawn parent not found: %s" % spawn_parent_path)
 	
 	if auto_start:
 		start_spawning()
@@ -345,7 +356,9 @@ func _spawn_entity_at(position: Vector2) -> void:
 	entity.global_position = position
 	
 	# Parent handling
-	if parent_to_spawner:
+	if _spawn_parent:
+		_spawn_parent.add_child(entity)
+	elif parent_to_spawner:
 		add_child(entity)
 	else:
 		get_tree().root.add_child(entity)
@@ -399,7 +412,7 @@ func _get_formation_spawn() -> Array[Vector2]:
 	
 	for i in range(entities_per_spawn):
 		var offset_x = (i - entities_per_spawn / 2.0) * entity_spacing
-		var offset_y = abs(offset_x) * 0.5  # V-shape
+		var offset_y = abs(offset_x) * 0.5 # V-shape
 		positions.append(center + Vector2(offset_x, offset_y))
 	
 	return positions
@@ -439,7 +452,7 @@ func _get_wave_spawn() -> Array[Vector2]:
 	
 	for i in range(entities_per_spawn):
 		var x_offset = (i - half_count) * entity_spacing
-		var y_offset = sin(i * 0.5) * 30.0  # Wave curve
+		var y_offset = sin(i * 0.5) * 30.0 # Wave curve
 		positions.append(center + Vector2(x_offset, y_offset))
 	
 	return positions

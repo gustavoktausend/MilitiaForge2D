@@ -1,0 +1,45 @@
+[gd_scene load_steps=7 format=3 uid="uid://rivaldo_enemy_001"]
+
+[ext_resource type="Script" path="res://examples/rivaldo-td/entities/enemy.gd" id="1_script"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="3_health"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hurtbox.gd" id="4_hurtbox"]
+[ext_resource type="Script" path="res://militia_forge/components/movement/path_follow_movement.gd" id="5_move"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(32, 32)
+
+[node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_script")
+
+[node name="Visual" type="ColorRect" parent="."]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.8, 0, 0, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="ComponentHost" type="Node2D" parent="."]
+script = ExtResource("2_host")
+
+[node name="HealthComponent" type="Node" parent="ComponentHost"]
+script = ExtResource("3_health")
+max_health = 50
+
+[node name="Hurtbox" type="Area2D" parent="ComponentHost"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("4_hurtbox")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ComponentHost/Hurtbox"]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="PathFollowMovement" type="Node" parent="ComponentHost"]
+script = ExtResource("5_move")
+loop_type = 2
+max_speed = 150.0

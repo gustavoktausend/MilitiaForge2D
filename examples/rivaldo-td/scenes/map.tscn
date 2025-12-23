@@ -1,0 +1,65 @@
+[gd_scene load_steps=8 format=3 uid="uid://rivaldo_map_001"]
+
+[ext_resource type="Script" path="res://examples/rivaldo-td/scripts/td_game_manager.gd" id="1_gm"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/combat/spawner_component.gd" id="3_spawn"]
+[ext_resource type="PackedScene" uid="uid://rivaldo_walker_001" path="res://examples/rivaldo-td/entities/enemy_walker.tscn" id="4_walker"]
+[ext_resource type="PackedScene" uid="uid://rivaldo_tower_001" path="res://examples/rivaldo-td/entities/tower.tscn" id="5_tower"]
+
+[sub_resource type="Curve2D" id="Curve2D_1"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, -64, 128, 0, 0, 0, 0, 1024, 128, 0, 0, 0, 0, 1024, 320, 0, 0, 0, 0, 128, 320, 0, 0, 0, 0, 128, 512, 0, 0, 0, 0, 1216, 512)
+}
+point_count = 6
+
+[node name="Map" type="Node2D"]
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0.133333, 0.545098, 0.133333, 1)
+
+[node name="PathVisual" type="Line2D" parent="."]
+points = PackedVector2Array(-64, 128, 1024, 128, 1024, 320, 128, 320, 128, 512, 1216, 512)
+width = 80.0
+default_color = Color(0.545098, 0.470588, 0.364706, 1)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="TDGameManager" type="Node" parent="." groups=["game_manager"]]
+script = ExtResource("1_gm")
+spawner_path = NodePath("../Path2D/ComponentHost/SpawnerComponent")
+
+[node name="Path2D" type="Path2D" parent="."]
+curve = SubResource("Curve2D_1")
+
+[node name="ComponentHost" type="Node2D" parent="Path2D"]
+script = ExtResource("2_host")
+
+[node name="SpawnerComponent" type="Node" parent="Path2D/ComponentHost"]
+script = ExtResource("3_spawn")
+entity_scene = ExtResource("4_walker")
+auto_start = true
+spawn_interval = 1.0
+parent_to_spawner = false
+spawn_parent_path = NodePath("../..")
+use_waves = true
+entities_per_wave = 10
+wave_delay = 4.0
+debug_spawner = true
+
+[node name="Tower1" parent="." instance=ExtResource("5_tower")]
+position = Vector2(500, 224)
+
+[node name="Tower2" parent="." instance=ExtResource("5_tower")]
+position = Vector2(800, 416)
+
+[node name="Tower3" parent="." instance=ExtResource("5_tower")]
+position = Vector2(250, 416)
+
+[node name="Tower4" parent="." instance=ExtResource("5_tower")]
+position = Vector2(100, 224)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(576, 324)

@@ -1,0 +1,35 @@
+[gd_scene load_steps=5 format=3 uid="uid://rivaldo_projectile_001"]
+
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="1_host"]
+[ext_resource type="Script" path="res://militia_forge/components/combat/projectile_component.gd" id="2_proj"]
+[ext_resource type="Script" path="res://militia_forge/components/health/hitbox.gd" id="3_hitbox"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(10, 10)
+
+[node name="Projectile" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_left = -5.0
+offset_top = -5.0
+offset_right = 5.0
+offset_bottom = 5.0
+color = Color(1, 1, 0, 1)
+
+[node name="ComponentHost" type="Node2D" parent="."]
+script = ExtResource("1_host")
+
+[node name="ProjectileComponent" type="Node" parent="ComponentHost"]
+script = ExtResource("2_proj")
+speed = 400.0
+lifetime = 2.0
+
+[node name="Hitbox" type="Area2D" parent="ComponentHost"]
+collision_layer = 0
+collision_mask = 4
+script = ExtResource("3_hitbox")
+damage = 25
+one_shot = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ComponentHost/Hitbox"]
+shape = SubResource("RectangleShape2D_1")

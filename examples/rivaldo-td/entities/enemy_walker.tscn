@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://rivaldo_walker_001"]
+
+[ext_resource type="PackedScene" uid="uid://rivaldo_enemy_001" path="res://examples/rivaldo-td/entities/enemy.tscn" id="1_enemy"]
+
+[node name="EnemyWalker" type="PathFollow2D"]
+loop = false
+rotates = false
+
+[node name="Enemy" parent="." instance=ExtResource("1_enemy")]
