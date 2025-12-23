@@ -1,0 +1,54 @@
+[gd_scene load_steps=5 format=3 uid="uid://test_health_bar"]
+
+[ext_resource type="Script" path="res://examples/militia-ui-tests/test_health_bar_runner.gd" id="1_runner"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="3_health"]
+[ext_resource type="Script" path="res://militia_forge/ui/widgets/health_bar_widget.gd" id="4_widget"]
+
+[node name="TestHealthBar" type="Node2D"]
+script = ExtResource("1_runner")
+
+[node name="DummyPlayer" type="Node2D" parent="."]
+script = ExtResource("2_host")
+
+[node name="HealthComponent" type="Node" parent="DummyPlayer"]
+script = ExtResource("3_health")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="HealthBarWidget" type="Control" parent="HUD" node_paths=PackedStringArray("progress_bar")]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 350.0
+offset_bottom = 90.0
+script = ExtResource("4_widget")
+progress_bar = NodePath("ProgressBar")
+
+[node name="ProgressBar" type="ProgressBar" parent="HUD/HealthBarWidget"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+value = 50.0
+
+[node name="Controls" type="VBoxContainer" parent="HUD"]
+offset_left = 50.0
+offset_top = 150.0
+offset_right = 200.0
+offset_bottom = 250.0
+
+[node name="Label" type="Label" parent="HUD/Controls"]
+layout_mode = 2
+text = "Health Controls"
+
+[node name="DamageButton" type="Button" parent="HUD/Controls"]
+layout_mode = 2
+text = "Damage (10)"
+
+[node name="HealButton" type="Button" parent="HUD/Controls"]
+layout_mode = 2
+text = "Heal (10)"

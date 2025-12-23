@@ -176,7 +176,7 @@ func _register_component(component: Component) -> void:
 	_components.append(component)
 	
 	# Add to type dictionary
-	var component_type = component.get_class()
+	var component_type = _get_component_type(component)
 	if not _components_by_type.has(component_type):
 		_components_by_type[component_type] = []
 	
@@ -192,13 +192,19 @@ func _unregister_component(component: Component) -> void:
 	_components.erase(component)
 	
 	# Remove from type dictionary
-	var component_type = component.get_class()
+	var component_type = _get_component_type(component)
 	if _components_by_type.has(component_type):
 		_components_by_type[component_type].erase(component)
 		
 		# Clean up empty arrays
 		if _components_by_type[component_type].size() == 0:
 			_components_by_type.erase(component_type)
+
+func _get_component_type(component: Component) -> String:
+	var script = component.get_script()
+	if script and script.get_global_name():
+		return script.get_global_name()
+	return component.get_class()
 #endregion
 
 #region Debug Methods

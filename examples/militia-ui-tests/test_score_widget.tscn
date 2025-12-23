@@ -1,0 +1,55 @@
+[gd_scene load_steps=5 format=3 uid="uid://test_score_widget"]
+
+[ext_resource type="Script" path="res://examples/militia-ui-tests/test_score_widget_runner.gd" id="1_runner"]
+[ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://militia_forge/components/progression/score_component.gd" id="3_score"]
+[ext_resource type="Script" path="res://militia_forge/ui/widgets/score_widget.gd" id="4_widget"]
+
+[node name="TestScoreWidget" type="Node2D"]
+script = ExtResource("1_runner")
+
+[node name="DummyPlayer" type="Node2D" parent="."]
+script = ExtResource("2_host")
+
+[node name="ScoreComponent" type="Node" parent="DummyPlayer"]
+script = ExtResource("3_score")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ScoreWidget" type="Control" parent="HUD" node_paths=PackedStringArray("score_label")]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = 250.0
+offset_bottom = 90.0
+script = ExtResource("4_widget")
+score_label = NodePath("Label")
+format_string = "Score: %06d"
+
+[node name="Label" type="Label" parent="HUD/ScoreWidget"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Score: 000000"
+
+[node name="Controls" type="VBoxContainer" parent="HUD"]
+offset_left = 50.0
+offset_top = 150.0
+offset_right = 200.0
+offset_bottom = 300.0
+
+[node name="Label" type="Label" parent="HUD/Controls"]
+layout_mode = 2
+text = "Score Controls"
+
+[node name="AddScoreBtn" type="Button" parent="HUD/Controls"]
+layout_mode = 2
+text = "Add 100"
+
+[node name="ComboBtn" type="Button" parent="HUD/Controls"]
+layout_mode = 2
+text = "Add Combo"

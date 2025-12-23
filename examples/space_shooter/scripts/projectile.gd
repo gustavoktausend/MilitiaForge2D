@@ -5,6 +5,11 @@
 
 extends Node2D
 
+#region Signals
+## Emitted when projectile should be returned to pool (instead of queue_free)
+signal despawned
+#endregion
+
 #region Exports
 @export var speed: float = 500.0
 @export var damage: int = 10
@@ -17,6 +22,7 @@ var direction: Vector2 = Vector2.UP
 var time_alive: float = 0.0
 var hitbox: Node = null # Reference to Hitbox for cleanup
 var is_being_destroyed: bool = false # Prevent multiple destruction calls
+var use_pooling: bool = false # Set by pool manager if spawned from pool
 #endregion
 
 func _ready() -> void:
@@ -146,7 +152,7 @@ func _on_hitbox_hit(target: Node, damage_dealt: int) -> void:
 		hitbox.monitorable = false
 
 	# Use call_deferred to ensure Hurtbox processes damage before projectile is destroyed
-	call_deferred("queue_free")
+	call_deferred("_destroy_or_pool")
 
 func _process(delta: float) -> void:
 	# Move projectile
@@ -155,16 +161,45 @@ func _process(delta: float) -> void:
 	# Update lifetime
 	time_alive += delta
 	if time_alive >= lifetime:
-		queue_free()
+		_destroy_or_pool()
+		return
 
 	# Remove if off screen
 	var viewport_rect = get_viewport_rect()
 	if position.x < -50 or position.x > viewport_rect.size.x + 50 or \
 	   position.y < -50 or position.y > viewport_rect.size.y + 50:
-		queue_free()
+		_destroy_or_pool()
 
 func set_direction(new_direction: Vector2) -> void:
 	direction = new_direction.normalized()
 
 	# Rotate visual to match direction
 	rotation = direction.angle() + PI / 2
+
+## Object Pooling: Reset projectile to default state when returned to pool
+func reset_for_pool() -> void:
+	# Reset state
+	time_alive = 0.0
+	is_being_destroyed = false
+	direction = Vector2.UP
+
+	# Re-enable hitbox if it was disabled
+	if hitbox and is_instance_valid(hitbox):
+		hitbox.monitoring = true
+		hitbox.monitorable = true
+		hitbox.active = true
+
+	# Reset visual
+	rotation = 0.0
+	modulate = Color.WHITE
+
+	print("[Projectile] Reset for pool reuse")
+
+## Helper: Destroy or return to pool based on use_pooling flag
+func _destroy_or_pool() -> void:
+	if use_pooling:
+		# Return to pool via signal
+		despawned.emit(self)
+	else:
+		# Traditional destruction
+		queue_free()

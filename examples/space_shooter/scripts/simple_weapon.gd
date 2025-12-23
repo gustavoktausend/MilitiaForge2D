@@ -5,6 +5,15 @@
 
 extends Node
 
+#region Signals
+## Emitted when weapon successfully fires a projectile
+## Observer Pattern: Allows systems to react to firing (UI, audio, stats, etc.)
+signal weapon_fired(projectile: Node2D, direction: Vector2)
+
+## Emitted when fire attempt fails (cooldown, no ammo, etc.)
+signal fire_failed(reason: String)
+#endregion
+
 #region Exports
 @export var projectile_scene: PackedScene
 @export var fire_rate: float = 0.2
@@ -12,12 +21,15 @@ extends Node
 @export var projectile_damage: int = 10
 @export var auto_fire: bool = true
 @export var is_player_weapon: bool = true  # Determines projectile collision layers
+@export var use_object_pooling: bool = true  # Use ProjectilePoolManager if available
+@export var pooled_projectile_type: String = "player_laser"  # Type for pool manager
 #endregion
 
 #region Private Variables
 var fire_cooldown: float = 0.0
 var wants_to_fire: bool = false
 var projectiles_container: Node = null
+var _pool_manager: Node = null  # Reference to ProjectilePoolManager (if available)
 #endregion
 
 func _ready() -> void:
@@ -25,6 +37,14 @@ func _ready() -> void:
 	# Fallback to searching if not injected (for backwards compatibility)
 	if not projectiles_container:
 		call_deferred("_find_projectiles_container")
+
+	# Try to find ProjectilePoolManager if using object pooling
+	if use_object_pooling:
+		_pool_manager = get_node_or_null("/root/ProjectilePoolManager")
+		if _pool_manager:
+			print("[SimpleWeapon] ✅ Found ProjectilePoolManager - using object pooling")
+		else:
+			print("[SimpleWeapon] ⚠️ ProjectilePoolManager not found - falling back to instantiate()")
 
 ## Dependency Injection: Setup weapon with projectiles container
 ## This decouples SimpleWeapon from scene tree structure
@@ -54,6 +74,10 @@ func fire(position: Vector2, direction: Vector2) -> bool:
 	wants_to_fire = true
 
 	if not can_fire():
+		if fire_cooldown > 0:
+			fire_failed.emit("cooldown")
+		elif not projectile_scene:
+			fire_failed.emit("no_projectile_scene")
 		return false
 
 	return execute_fire(position, direction)
@@ -65,28 +89,49 @@ func can_fire() -> bool:
 	return fire_cooldown <= 0 and projectile_scene != null
 
 func execute_fire(spawn_position: Vector2, direction: Vector2) -> bool:
-	if not projectile_scene:
-		return false
+	var projectile: Node2D = null
 
-	# Create projectile
-	var projectile = projectile_scene.instantiate()
+	# Try object pooling first (if enabled and available)
+	if use_object_pooling and _pool_manager and _pool_manager.has_method("spawn_projectile"):
+		projectile = _pool_manager.spawn_projectile(
+			pooled_projectile_type,
+			spawn_position,
+			direction,
+			projectile_speed,
+			projectile_damage,
+			is_player_weapon
+		)
 
-	# Set projectile properties
-	if projectile.has_method("set_direction"):
-		projectile.set_direction(direction)
+		if not projectile:
+			push_warning("[SimpleWeapon] Pool spawn failed, falling back to instantiate()")
 
-	projectile.speed = projectile_speed
-	projectile.damage = projectile_damage
-	projectile.is_player_projectile = is_player_weapon  # Use weapon's setting
-	projectile.global_position = spawn_position
+	# Fallback to traditional instantiation
+	if not projectile:
+		if not projectile_scene:
+			fire_failed.emit("no_projectile_scene")
+			return false
 
-	# Add to scene
-	if projectiles_container:
-		projectiles_container.add_child(projectile)
-	else:
-		get_tree().root.add_child(projectile)
+		projectile = projectile_scene.instantiate()
+
+		# Set projectile properties
+		if projectile.has_method("set_direction"):
+			projectile.set_direction(direction)
+
+		projectile.speed = projectile_speed
+		projectile.damage = projectile_damage
+		projectile.is_player_projectile = is_player_weapon
+		projectile.global_position = spawn_position
+
+		# Add to scene
+		if projectiles_container:
+			projectiles_container.add_child(projectile)
+		else:
+			get_tree().root.add_child(projectile)
 
 	# Set cooldown
 	fire_cooldown = fire_rate
+
+	# Observer Pattern: Emit signal so systems can react to weapon firing
+	weapon_fired.emit(projectile, direction)
 
 	return true

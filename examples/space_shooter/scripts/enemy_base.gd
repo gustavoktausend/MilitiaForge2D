@@ -90,7 +90,30 @@ func _setup_components() -> void:
 	# Add Physics Body FIRST (at root level)
 	physics_body = CharacterBody2D.new()
 	physics_body.name = "Body"
+
+	# Configure collision layers for physical collisions
+	physics_body.collision_layer = 2  # Enemy layer
+	physics_body.collision_mask = 1   # Collide with player
+
 	add_child(physics_body)
+	print("[Enemy] %s CharacterBody2D created with layer=%d, mask=%d" % [
+		enemy_type,
+		physics_body.collision_layer,
+		physics_body.collision_mask
+	])
+
+	# Add collision shape to physics body for physical collisions
+	var body_collision = CollisionShape2D.new()
+	var body_shape = RectangleShape2D.new()
+	# Size depends on enemy type
+	if enemy_type == "Tank":
+		body_shape.size = Vector2(96, 96)
+	else:
+		body_shape.size = Vector2(48, 48)
+	body_collision.shape = body_shape
+	body_collision.name = "BodyCollisionShape"
+	physics_body.add_child(body_collision)
+	print("[Enemy] %s CharacterBody2D collision shape added (size: %v)" % [enemy_type, body_shape.size])
 
 	# Create ComponentHost as CHILD of physics body
 	# This allows MovementComponent to find the body as parent
@@ -177,6 +200,18 @@ func _setup_components() -> void:
 	await get_tree().process_frame
 	var found_health = host.get_component("HealthComponent")
 	print("[Enemy] %s HealthComponent lookup test: %s" % [enemy_type, "Found" if found_health else "NOT FOUND"])
+
+	# Setup Collision Damage Component
+	print("[Enemy] %s Creating CollisionDamageComponent..." % enemy_type)
+	var collision_damage = CollisionDamageComponent.new()
+	collision_damage.damage_on_collision = damage_to_player  # Enemy deals configured damage on collision
+	collision_damage.can_take_collision_damage = true  # Enemy takes damage from collisions
+	collision_damage.incoming_damage_multiplier = 1.0  # Take full damage
+	collision_damage.apply_knockback = true
+	collision_damage.knockback_force = 200.0  # Moderate knockback
+	collision_damage.collision_cooldown = 0.5
+	host.add_component(collision_damage)
+	print("[Enemy] %s CollisionDamageComponent ready! Collision damage: %d" % [enemy_type, damage_to_player])
 
 	# Setup Movement Component (now physics body exists)
 	movement_component = BoundedMovement.new()
@@ -340,8 +375,8 @@ func _update_movement(_delta: float) -> void:
 			# Check if near boundaries and reverse direction
 			if physics_body:
 				var current_x = physics_body.global_position.x
-				var left_bound = 320 + 30 # Left boundary + margin
-				var right_bound = 960 - 30 # Right boundary - margin
+				var left_bound = SpaceShooterConstants.ENEMY_LEFT_BOUND
+				var right_bound = SpaceShooterConstants.ENEMY_RIGHT_BOUND
 
 				# Reverse direction if near boundaries
 				if current_x <= left_bound and zigzag_direction < 0:

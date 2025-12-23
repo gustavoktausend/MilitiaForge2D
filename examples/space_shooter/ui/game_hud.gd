@@ -543,8 +543,6 @@ func _on_health_changed(new_health: int, old_health: int) -> void:
 
 		# Update text
 		health_value_label.text = "%d" % new_health
-	else:
-		print("[HUD] WARNING: health_bar is null!")
 
 		# Color shift based on health
 		var fill: StyleBoxFlat = health_bar.get_theme_stylebox("fill")
@@ -562,6 +560,8 @@ func _on_health_changed(new_health: int, old_health: int) -> void:
 			fill.bg_color = NEON_GREEN
 			fill.border_color = Color(NEON_GREEN, 2.0)
 			health_value_label.add_theme_color_override("font_outline_color", NEON_GREEN)
+	else:
+		print("[HUD] WARNING: health_bar is null!")
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	# Red screen flash

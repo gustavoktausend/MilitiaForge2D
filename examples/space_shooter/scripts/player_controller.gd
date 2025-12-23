@@ -8,6 +8,15 @@ extends Node2D
 #region Signals
 ## Emitted when player is fully initialized and ready to use
 signal player_ready(player_node: Node2D)
+
+## Observer Pattern: Emitted when player picks up a powerup
+signal powerup_collected(powerup_type: String, value)
+
+## Observer Pattern: Emitted when weapon is upgraded
+signal weapon_upgraded(new_damage: int, new_fire_rate: float)
+
+## Observer Pattern: Emitted when shield/health is upgraded
+signal shield_upgraded(health_restored: int)
 #endregion
 
 #region Configuration
@@ -49,8 +58,25 @@ func _setup_components() -> void:
 	print("[Player] Creating CharacterBody2D...")
 	physics_body = CharacterBody2D.new()
 	physics_body.name = "Body"
+
+	# Configure collision layers for physical collisions
+	physics_body.collision_layer = 1  # Player layer
+	physics_body.collision_mask = 2   # Collide with enemies
+
 	host.add_child(physics_body)
-	print("[Player] CharacterBody2D created")
+	print("[Player] CharacterBody2D created with layer=%d, mask=%d" % [
+		physics_body.collision_layer,
+		physics_body.collision_mask
+	])
+
+	# Add collision shape to physics body for physical collisions
+	var body_collision = CollisionShape2D.new()
+	var body_shape = RectangleShape2D.new()
+	body_shape.size = Vector2(48, 72)  # Match sprite size
+	body_collision.shape = body_shape
+	body_collision.name = "BodyCollisionShape"
+	physics_body.add_child(body_collision)
+	print("[Player] CharacterBody2D collision shape added")
 
 	# Add Sprite placeholder
 	var sprite = Sprite2D.new()
@@ -89,10 +115,10 @@ func _setup_components() -> void:
 	# Wait for viewport to be ready, then set bounds
 	await get_tree().process_frame
 	var viewport_size = get_viewport().get_visible_rect().size
-	# Updated for 1920x1080: side panels = 480px, play area = 960px
+	# Use GameConstants for play area boundaries
 	var play_area_bounds = Rect2(
-		Vector2(480, 0),  # Start after left panel (480px)
-		Vector2(960, viewport_size.y)  # Play area width (960px) x full height
+		Vector2(SpaceShooterConstants.PLAY_AREA_LEFT, 0),
+		Vector2(SpaceShooterConstants.PLAY_AREA_WIDTH, viewport_size.y)
 	)
 	movement.set_custom_bounds(play_area_bounds)
 	movement.boundary_margin = Vector2(16, 16)  # Smaller margin since play area is narrow
@@ -139,6 +165,18 @@ func _setup_components() -> void:
 	print("║ Monitorable: %s                                    ║" % hurtbox.monitorable)
 	print("║ Debug: %s                                          ║" % hurtbox.debug_hurtbox)
 	print("╚════════════════════════════════════════════════════╝")
+
+	# Setup Collision Damage Component
+	print("[Player] Creating CollisionDamageComponent...")
+	var collision_damage = CollisionDamageComponent.new()
+	collision_damage.damage_on_collision = 30  # Player deals 30 damage to enemies on collision
+	collision_damage.can_take_collision_damage = true  # Player takes damage from collisions
+	collision_damage.incoming_damage_multiplier = 1.0  # Take full damage
+	collision_damage.apply_knockback = true
+	collision_damage.knockback_force = 300.0  # Strong knockback to separate
+	collision_damage.collision_cooldown = 0.5  # Match invincibility duration
+	host.add_component(collision_damage)
+	print("[Player] CollisionDamageComponent ready! Collision damage: 30")
 
 	# Setup Input Component
 	input_component = InputComponent.new()
@@ -336,7 +374,16 @@ func power_up_weapon() -> void:
 		simple_weapon.fire_rate = max(simple_weapon.fire_rate - 0.05, 0.1)
 		print("[Player] Weapon upgraded! Damage: %d, Fire rate: %.2f" % [simple_weapon.projectile_damage, simple_weapon.fire_rate])
 
+		# Observer Pattern: Emit signal for UI/audio/VFX systems to react
+		weapon_upgraded.emit(simple_weapon.projectile_damage, simple_weapon.fire_rate)
+		powerup_collected.emit("weapon", {"damage": simple_weapon.projectile_damage, "fire_rate": simple_weapon.fire_rate})
+
 func power_up_shield() -> void:
 	if health:
-		health.heal(30)
+		var health_restored = 30
+		health.heal(health_restored)
 		print("[Player] Health restored!")
+
+		# Observer Pattern: Emit signal for UI/audio/VFX systems to react
+		shield_upgraded.emit(health_restored)
+		powerup_collected.emit("shield", health_restored)
