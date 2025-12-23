@@ -42,6 +42,7 @@ var _all_ready: bool = false
 
 #region Lifecycle Methods
 func _ready() -> void:
+	print("HOST READY: ", get_parent().name)
 	_discover_and_initialize_components()
 
 func _process(delta: float) -> void:

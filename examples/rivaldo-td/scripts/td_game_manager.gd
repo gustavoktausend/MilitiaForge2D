@@ -35,6 +35,41 @@ func _ready() -> void:
 			
 	# Update UI initial state
 	call_deferred("_nitial_ui_update")
+	
+	# FALLBACK: Inject AttackCommand manually since resource loader is failing
+	print("DEBUG: Injecting AttackCommand manually (Deferred)...")
+	call_deferred("_inject_attack_command")
+	
+func _inject_attack_command() -> void:
+	var cmd = ProjectileAttackCommand.new()
+	# Just load the scene directly now that we fixed it
+	var path = "res://examples/rivaldo-td/entities/projectile.tscn"
+	if FileAccess.file_exists(path):
+		var proj_scene = load(path)
+		if proj_scene:
+			print("DEBUG: Projectile scene loaded successfully.")
+			cmd.projectile_scene = proj_scene
+		else:
+			print("ERROR: Failed to load projectile.tscn! load() returned null.")
+	else:
+		print("ERROR: File NOT found at path: ", path)
+		
+	cmd.projectile_speed = 400.0
+	cmd.cooldown = 0.8
+	cmd.damage = 25
+	cmd.range_radius = 200.0
+	
+	var towers = get_tree().get_nodes_in_group("towers")
+	print("DEBUG: Found %d towers to inject." % towers.size())
+	print("DEBUG: Created Command ID: %d | Scene: %s" % [cmd.get_instance_id(), cmd.projectile_scene])
+	
+	for tower in towers:
+		var host = tower.get_node_or_null("ComponentHost")
+		if host:
+			var turret = host.get_component("TurretComponent")
+			if turret:
+				turret.attack_command = cmd
+				print("DEBUG: Injected command into %s" % tower.name)
 
 func _nitial_ui_update() -> void:
 	gold_changed.emit(current_gold)

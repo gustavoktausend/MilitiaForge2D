@@ -1,10 +1,15 @@
-[gd_scene load_steps=7 format=3 uid="uid://rivaldo_enemy_001"]
+[gd_scene load_steps=8 format=3 uid="uid://rivaldo_enemy_001"]
 
 [ext_resource type="Script" path="res://examples/rivaldo-td/entities/enemy.gd" id="1_script"]
+[ext_resource type="Script" path="res://militia_forge/systems/movement/path_follow_movement_strategy.gd" id="2_strat"]
 [ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="2_host"]
 [ext_resource type="Script" path="res://militia_forge/components/health/health_component.gd" id="3_health"]
 [ext_resource type="Script" path="res://militia_forge/components/health/hurtbox.gd" id="4_hurtbox"]
-[ext_resource type="Script" path="res://militia_forge/components/movement/path_follow_movement.gd" id="5_move"]
+
+[sub_resource type="Resource" id="Resource_move"]
+script = ExtResource("2_strat")
+loop = false
+rotate = true
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
 size = Vector2(32, 32)
@@ -13,6 +18,8 @@ size = Vector2(32, 32)
 collision_layer = 1
 collision_mask = 0
 script = ExtResource("1_script")
+movement_strategy = SubResource("Resource_move")
+speed = 150.0
 
 [node name="Visual" type="ColorRect" parent="."]
 offset_left = -16.0
@@ -32,14 +39,9 @@ script = ExtResource("3_health")
 max_health = 50
 
 [node name="Hurtbox" type="Area2D" parent="ComponentHost"]
-collision_layer = 4
+collision_layer = 1
 collision_mask = 0
 script = ExtResource("4_hurtbox")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ComponentHost/Hurtbox"]
 shape = SubResource("RectangleShape2D_1")
-
-[node name="PathFollowMovement" type="Node" parent="ComponentHost"]
-script = ExtResource("5_move")
-loop_type = 2
-max_speed = 150.0

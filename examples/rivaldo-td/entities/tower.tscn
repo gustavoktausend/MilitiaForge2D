@@ -1,10 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://rivaldo_tower_001"]
+[gd_scene load_steps=7 format=3 uid="uid://rivaldo_tower_001"]
 
 [ext_resource type="Script" path="res://militia_forge/core/component_host.gd" id="1_host"]
-[ext_resource type="Script" path="res://militia_forge/components/combat/weapon_component.gd" id="2_weapon"]
+[ext_resource type="Resource" uid="uid://rivaldo_attack_001" path="res://examples/rivaldo-td/resources/basic_tower_attack.tres" id="2_attack"]
 [ext_resource type="Script" path="res://militia_forge/components/combat/turret_component.gd" id="3_turret"]
 [ext_resource type="Script" path="res://militia_forge/components/combat/targeting/closest_strategy.gd" id="4_strat"]
-[ext_resource type="PackedScene" uid="uid://rivaldo_projectile_001" path="res://examples/rivaldo-td/entities/projectile.tscn" id="5_proj"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 200.0
@@ -12,7 +11,7 @@ radius = 200.0
 [sub_resource type="Resource" id="Resource_strat"]
 script = ExtResource("4_strat")
 
-[node name="Tower" type="Node2D"]
+[node name="Tower" type="Node2D" groups=["towers"]]
 
 [node name="BaseVisual" type="ColorRect" parent="."]
 offset_left = -20.0
@@ -42,18 +41,12 @@ shape = SubResource("CircleShape2D_1")
 [node name="ComponentHost" type="Node2D" parent="."]
 script = ExtResource("1_host")
 
-[node name="WeaponComponent" type="Node" parent="ComponentHost"]
-script = ExtResource("2_weapon")
-projectile_scene = ExtResource("5_proj")
-fire_rate = 0.5
-damage = 25
-use_firing_point = true
-firing_point_path = NodePath("../../RotatingPart/FiringPoint")
-
 [node name="TurretComponent" type="Node" parent="ComponentHost"]
 script = ExtResource("3_turret")
-detection_area_path = NodePath("../../DetectionArea")
+detection_area_path = NodePath("../DetectionArea")
+detection_range = 200.0
 strategy = SubResource("Resource_strat")
-weapon_component_path = NodePath("../WeaponComponent")
-rotating_part_path = NodePath("../../RotatingPart")
-turn_speed = 360.0
+rotating_part_path = NodePath("../RotatingPart")
+attack_command = ExtResource("2_attack")
+turn_speed = 720.0
+fire_threshold = 10.0
