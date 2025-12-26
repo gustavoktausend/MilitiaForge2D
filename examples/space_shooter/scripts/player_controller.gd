@@ -280,7 +280,19 @@ func _setup_visuals() -> void:
 	if ship_config and ship_config.ship_sprite:
 		sprite_texture = ship_config.ship_sprite
 		ship_scale_mult = ship_config.ship_scale
-		ship_color = ship_config.ship_tint
+
+		# Load custom color from PlayerData
+		if has_node("/root/PlayerData"):
+			var player_data = get_node("/root/PlayerData")
+			if player_data.selected_ship_color:
+				ship_color = player_data.selected_ship_color * player_data.selected_color_intensity
+				print("[Player] Applied custom color - RGB: (%.2f, %.2f, %.2f), Intensity: %.2f" %
+					[player_data.selected_ship_color.r, player_data.selected_ship_color.g,
+					 player_data.selected_ship_color.b, player_data.selected_color_intensity])
+			else:
+				ship_color = ship_config.ship_tint  # Fallback to default ship tint
+		else:
+			ship_color = ship_config.ship_tint
 	else:
 		# Fallback to default sprite
 		var sprite_path = "res://examples/space_shooter/assets/sprites/player/ship.png"

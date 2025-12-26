@@ -10,6 +10,10 @@ var selected_ship_config: ShipConfig
 
 ## Available ship configurations
 var available_ships: Array[ShipConfig] = []
+
+## Ship color customization
+var selected_ship_color: Color = Color.WHITE
+var selected_color_intensity: float = 1.0
 #endregion
 
 func _ready() -> void:
