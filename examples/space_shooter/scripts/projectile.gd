@@ -155,12 +155,6 @@ func _on_hitbox_hit(target: Node, damage_dealt: int) -> void:
 	call_deferred("_destroy_or_pool")
 
 func _process(delta: float) -> void:
-	# DEBUG: Print first 3 frames when active
-	if time_alive < 0.1:
-		print("[Projectile] _process - pos: %s, dir: %s, speed: %s, visible: %s, parent: %s" % [
-			global_position, direction, speed, visible, get_parent().name if get_parent() else "null"
-		])
-
 	# Move projectile
 	position += direction * speed * delta
 

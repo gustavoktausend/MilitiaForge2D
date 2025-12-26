@@ -20,10 +20,15 @@ signal shield_upgraded(health_restored: int)
 #endregion
 
 #region Configuration
+## Ship configuration (optional - if null, uses default values)
+@export var ship_config: ShipConfig
+
+## Default values (used if ship_config is null)
 @export var move_speed: float = 300.0
 @export var max_health: int = 100
 @export var fire_rate: float = 0.2
 @export var projectile_damage: int = 10
+@export var projectile_speed: float = 600.0
 #endregion
 
 #region Component References
@@ -38,9 +43,37 @@ var physics_body: CharacterBody2D  # Reference to the physics body
 #endregion
 
 func _ready() -> void:
+	# Load ship config from PlayerData if not set
+	if not ship_config and has_node("/root/PlayerData"):
+		var player_data = get_node("/root/PlayerData")
+		ship_config = player_data.get_selected_ship()
+		if ship_config:
+			print("[Player] Loaded ship config from PlayerData: %s" % ship_config.ship_name)
+		else:
+			print("[Player] No ship config found in PlayerData, using defaults")
+	elif ship_config:
+		print("[Player] Using pre-assigned ship config: %s" % ship_config.ship_name)
+	else:
+		print("[Player] No ship config available, using default values")
+
+	_apply_ship_config()
 	await _setup_components()
 	_setup_visuals()
 	_connect_signals()
+
+## Apply ship configuration (if set)
+func _apply_ship_config() -> void:
+	if ship_config:
+		move_speed = ship_config.speed
+		max_health = ship_config.max_health
+		fire_rate = ship_config.get_fire_cooldown()
+		projectile_damage = ship_config.weapon_damage
+		projectile_speed = ship_config.projectile_speed
+		print("[Player] Applied ship config - Speed: %.0f, Health: %d, FireRate: %.2f, Damage: %d" %
+			[move_speed, max_health, fire_rate, projectile_damage])
+	else:
+		print("[Player] Using default stats - Speed: %.0f, Health: %d, FireRate: %.2f, Damage: %d" %
+			[move_speed, max_health, fire_rate, projectile_damage])
 
 func _setup_components() -> void:
 	print("╔═══════════════════════════════════════════════════════╗")
@@ -193,7 +226,7 @@ func _setup_components() -> void:
 	weapon.pooled_projectile_type = "player_laser"
 	weapon.fire_rate = fire_rate
 	weapon.damage = projectile_damage
-	weapon.projectile_speed = 600.0
+	weapon.projectile_speed = projectile_speed
 	weapon.auto_fire = false  # Disable auto_fire, we control firing manually
 	weapon.firing_offset = Vector2(0, -30)  # Fire from nose of ship
 	weapon.debug_weapon = true
@@ -238,29 +271,42 @@ func _setup_input_actions() -> void:
 	input_component.add_action("fire", [KEY_SPACE])
 
 func _setup_visuals() -> void:
-	# Try to load player sprite
-	var sprite_path = "res://examples/space_shooter/assets/sprites/player/ship.png"
+	# Determine sprite to use (from config or default)
+	var sprite_texture: Texture2D = null
+	var ship_scale_mult: float = 1.0
+	var ship_color: Color = Color.WHITE
 
-	if ResourceLoader.exists(sprite_path):
-		# Use sprite if available
+	# Try to load from ship config first
+	if ship_config and ship_config.ship_sprite:
+		sprite_texture = ship_config.ship_sprite
+		ship_scale_mult = ship_config.ship_scale
+		ship_color = ship_config.ship_tint
+	else:
+		# Fallback to default sprite
+		var sprite_path = "res://examples/space_shooter/assets/sprites/player/ship.png"
+		if ResourceLoader.exists(sprite_path):
+			sprite_texture = load(sprite_path)
+
+	if sprite_texture:
+		# Create sprite
 		var sprite = Sprite2D.new()
-		sprite.texture = load(sprite_path)
-		sprite.centered = true  # Center the sprite on the pivot
+		sprite.texture = sprite_texture
+		sprite.centered = true
+		sprite.modulate = ship_color
 
-		# Scale down to reasonable size (adjust as needed)
-		# Updated for 1920x1080: increased 50% for better visibility
-		# Original: 48px, New: 72px (48 * 1.5)
-		var desired_height = 72.0
+		# Scale to desired size
+		var desired_height = 72.0 * ship_scale_mult
 		var texture_height = sprite.texture.get_height()
 		var scale_factor = desired_height / texture_height
 		sprite.scale = Vector2(scale_factor, scale_factor)
 
 		sprite.z_index = 1
 		physics_body.add_child(sprite)
-		print("[Player] Loaded sprite from: %s (scale: %.2f)" % [sprite_path, scale_factor])
+		var sprite_source = "ShipConfig" if ship_config else "default"
+		print("[Player] Loaded sprite from %s (scale: %.2f)" % [sprite_source, scale_factor])
 	else:
 		# Fallback to ColorRect if sprite not found
-		print("[Player] Sprite not found at %s, using placeholder" % sprite_path)
+		print("[Player] Sprite not available, using placeholder")
 		var visual = ColorRect.new()
 		# Updated for 1920x1080: increased 50% (32x48 -> 48x72)
 		visual.size = Vector2(48, 72)

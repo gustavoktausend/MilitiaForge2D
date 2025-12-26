@@ -28,14 +28,6 @@ func initialize(host_node: ComponentHost) -> void:
 
 func component_ready() -> void:
 	super.component_ready()
-
-	print("[SimpleWeapon] Ready - Player: %s, Pooling: %s, Type: %s, Team: %s, AutoFire: %s" % [
-		is_player_weapon,
-		use_object_pooling,
-		pooled_projectile_type,
-		ProjectileComponent.Team.keys()[projectile_team],
-		auto_fire
-	])
 #endregion
 
 #region Public API (compatibility with old SimpleWeapon interface)
@@ -47,7 +39,6 @@ func component_ready() -> void:
 func fire_at(spawn_position: Vector2, fire_direction: Vector2) -> bool:
 	# Check if can fire
 	if not _can_fire():
-		print("[SimpleWeapon] fire_at() - Cannot fire (cooldown or other)")
 		return false
 
 	# Set cooldown
@@ -57,10 +48,8 @@ func fire_at(spawn_position: Vector2, fire_direction: Vector2) -> bool:
 	var projectile: Node2D = null
 
 	# Use object pooling (enemy weapons should have this enabled)
-	print("[SimpleWeapon] fire_at() - pooling=%s, manager=%s, type=%s" % [use_object_pooling, _pool_manager != null, pooled_projectile_type])
 	if use_object_pooling and _pool_manager and not pooled_projectile_type.is_empty():
 		if _pool_manager.has_method("spawn_entity"):
-			print("[SimpleWeapon] fire_at() - Calling spawn_entity for %s" % pooled_projectile_type)
 			projectile = await _pool_manager.spawn_entity(pooled_projectile_type, {
 				"position": spawn_position,
 				"direction": fire_direction.normalized(),
@@ -68,13 +57,11 @@ func fire_at(spawn_position: Vector2, fire_direction: Vector2) -> bool:
 				"damage": damage,
 				"is_player_projectile": projectile_team == ProjectileComponent.Team.PLAYER
 			})
-			print("[SimpleWeapon] fire_at() - spawn_entity returned: %s" % (projectile != null))
 
 	if projectile:
 		weapon_fired.emit(1)
 		return true
 
-	print("[SimpleWeapon] fire_at() - Failed to spawn projectile!")
 	return false
 
 ## Setup weapon with projectiles container (Dependency Injection)
@@ -82,7 +69,6 @@ func fire_at(spawn_position: Vector2, fire_direction: Vector2) -> bool:
 ## @param container: Node where projectiles will be added
 func setup_weapon(container: Node) -> void:
 	set_projectiles_container(container)
-	print("[SimpleWeapon] Projectiles container set: %s" % container.name if container else "null")
 
 ## Stop firing (for auto-fire mode)
 func stop_fire_weapon() -> void:

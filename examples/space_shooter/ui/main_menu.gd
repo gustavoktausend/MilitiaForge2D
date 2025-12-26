@@ -15,7 +15,7 @@ var background: ColorRect
 #endregion
 
 #region Constants
-const GAME_SCENE_PATH = "res://examples/space_shooter/scenes/main_game.tscn"
+const SHIP_SELECTION_PATH = "res://examples/space_shooter/scenes/ship_selection.tscn"
 #endregion
 
 func _ready() -> void:
@@ -217,10 +217,10 @@ func _load_high_score() -> void:
 		print("[MainMenu] No high score file found")
 
 func _on_play_pressed() -> void:
-	print("[MainMenu] PLAY pressed - Loading game...")
+	print("[MainMenu] PLAY pressed - Loading ship selection...")
 
-	# Simple scene change (transition system available for future use)
-	get_tree().change_scene_to_file(GAME_SCENE_PATH)
+	# Go to ship selection first
+	get_tree().change_scene_to_file(SHIP_SELECTION_PATH)
 
 func _on_options_pressed() -> void:
 	print("[MainMenu] OPTIONS pressed")

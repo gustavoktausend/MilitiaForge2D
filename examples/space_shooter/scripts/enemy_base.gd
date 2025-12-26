@@ -429,18 +429,7 @@ func _update_movement(_delta: float) -> void:
 		movement_component.set_direction(direction.normalized())
 
 func _update_shooting(delta: float) -> void:
-	if not can_shoot:
-		return
-
-	if not weapon:
-		if Engine.get_process_frames() % 60 == 0:  # Print once per second
-			print("[Enemy] %s: No weapon! can_shoot=%s" % [enemy_type, can_shoot])
-		return
-
-	if not player:
-		return
-
-	if not physics_body:
+	if not can_shoot or not weapon or not player or not physics_body:
 		return
 
 	# Use timer-based shooting for more consistent fire rate
@@ -456,9 +445,7 @@ func _update_shooting(delta: float) -> void:
 		var shoot_position = physics_body.global_position
 		var shoot_direction = (player.global_position - shoot_position).normalized()
 		# Fire-and-forget pattern: call async method without await
-		# This works because we're calling it as a separate execution context
 		_fire_weapon_async(shoot_position, shoot_direction)
-		print("[Enemy] %s fired! Position: %v, Direction: %v" % [enemy_type, shoot_position, shoot_direction])
 
 ## Async helper to fire weapon without blocking _process()
 func _fire_weapon_async(shoot_position: Vector2, shoot_direction: Vector2) -> void:

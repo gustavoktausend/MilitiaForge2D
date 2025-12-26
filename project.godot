@@ -13,12 +13,13 @@ config_version=5
 config/name="MilitiaForge2D"
 config/description="A modular component-based framework for rapid 2D game development in Godot 4.x"
 config/version="0.1.0"
-run/main_scene="res://sandbox/test_scenes/component_foundation_test.tscn"
+run/main_scene="res://examples/space_shooter/scenes/main_menu.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
+PlayerData="*res://examples/space_shooter/scripts/player_data.gd"
 EntityPoolManager="*res://examples/space_shooter/scripts/entity_pool_manager.gd"
 SceneTransition="*res://addons/scene_transition/scene_transition.gd"
 

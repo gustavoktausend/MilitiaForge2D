@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ShipConfig" load_steps=3 format=3 uid="uid://orbx5uyli1n3"]
+
+[ext_resource type="Script" uid="uid://dmwrxbl02mxae" path="res://examples/space_shooter/scripts/ship_config.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cj452we0vq0di" path="res://examples/space_shooter/assets/sprites/player/ship_interceptor.png" id="2_yueda"]
+
+[resource]
+script = ExtResource("1")
+ship_name = "Interceptor"
+description = "Fast and agile with high fire rate, but fragile. Perfect for players who rely on dodging and hit-and-run tactics."
+ship_sprite = ExtResource("2_yueda")
+max_health = 70
+speed = 450.0
+fire_rate = 7.0
+weapon_damage = 8
+projectile_speed = 700.0
+ship_tint = Color(0.3, 1, 0.3, 1)
+ship_scale = 0.9

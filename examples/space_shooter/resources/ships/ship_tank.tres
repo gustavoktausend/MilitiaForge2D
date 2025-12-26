@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ShipConfig" load_steps=3 format=3 uid="uid://drd7gbijqpbpv"]
+
+[ext_resource type="Script" uid="uid://dmwrxbl02mxae" path="res://examples/space_shooter/scripts/ship_config.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://5pqf1f02at8g" path="res://examples/space_shooter/assets/sprites/player/ship_fortress.png" id="2_ss07x"]
+
+[resource]
+script = ExtResource("1")
+ship_name = "Fortress"
+description = "Heavy and durable with devastating firepower, but slow. Built for players who prefer raw power over mobility."
+ship_sprite = ExtResource("2_ss07x")
+max_health = 150
+speed = 200.0
+fire_rate = 3.0
+weapon_damage = 15
+projectile_speed = 550.0
+ship_tint = Color(1, 0.3, 0.3, 1)
+ship_scale = 1.1

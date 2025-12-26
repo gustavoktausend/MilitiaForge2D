@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ShipConfig" load_steps=3 format=3 uid="uid://bdfcn1fc11fbd"]
+
+[ext_resource type="Script" uid="uid://dmwrxbl02mxae" path="res://examples/space_shooter/scripts/ship_config.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cx5276qkg5hwi" path="res://examples/space_shooter/assets/sprites/player/ship.png" id="2_wcn8d"]
+
+[resource]
+script = ExtResource("1")
+ship_name = "Falcon"
+description = "A well-balanced ship with average stats across the board. Good for beginners and all-around gameplay."
+ship_sprite = ExtResource("2_wcn8d")
