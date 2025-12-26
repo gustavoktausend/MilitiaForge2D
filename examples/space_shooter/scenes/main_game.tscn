@@ -24,7 +24,7 @@ script = ExtResource("4")
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("5")
 
-[node name="ProjectilesContainer" type="Node2D" parent="."]
+[node name="ProjectilesContainer" type="Node2D" parent="." groups=["ProjectilesContainer"]]
 
 [node name="EnemiesContainer" type="Node2D" parent="."]
 

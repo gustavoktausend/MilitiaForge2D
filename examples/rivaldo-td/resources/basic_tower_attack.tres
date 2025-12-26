@@ -1,12 +1,10 @@
-[gd_resource type="Resource" script_class="ProjectileAttackCommand" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="ProjectileAttackCommand" load_steps=3 format=3 uid="uid://dck0bjehmjjjx"]
 
-[ext_resource type="Script" path="res://militia_forge/systems/combat/commands/projectile_attack_command.gd" id="1_cmd"]
-[ext_resource type="PackedScene" uid="uid://rivaldo_projectile_001" path="res://examples/rivaldo-td/entities/projectile.tscn" id="2_proj"]
+[ext_resource type="Script" uid="uid://c71h821pgr317" path="res://militia_forge/systems/combat/commands/projectile_attack_command.gd" id="1_cmd"]
+[ext_resource type="PackedScene" path="res://examples/rivaldo-td/entities/projectile.tscn" id="2_proj"]
 
 [resource]
 script = ExtResource("1_cmd")
 projectile_scene = ExtResource("2_proj")
-projectile_speed = 400.0
 cooldown = 0.8
 damage = 25
-range_radius = 200.0

@@ -155,6 +155,12 @@ func _on_hitbox_hit(target: Node, damage_dealt: int) -> void:
 	call_deferred("_destroy_or_pool")
 
 func _process(delta: float) -> void:
+	# DEBUG: Print first 3 frames when active
+	if time_alive < 0.1:
+		print("[Projectile] _process - pos: %s, dir: %s, speed: %s, visible: %s, parent: %s" % [
+			global_position, direction, speed, visible, get_parent().name if get_parent() else "null"
+		])
+
 	# Move projectile
 	position += direction * speed * delta
 
@@ -175,6 +181,24 @@ func set_direction(new_direction: Vector2) -> void:
 
 	# Rotate visual to match direction
 	rotation = direction.angle() + PI / 2
+
+## Update collision layers based on is_player_projectile
+## CRITICAL: Must be called when projectile is reconfigured from pool
+func update_collision_layers() -> void:
+	if not hitbox or not is_instance_valid(hitbox):
+		return
+
+	# Update collision layers to match current is_player_projectile setting
+	if is_player_projectile:
+		hitbox.collision_layer = 4 # Player projectile layer
+		hitbox.collision_mask = 2 # Enemy layer
+	else:
+		hitbox.collision_layer = 8 # Enemy projectile layer
+		hitbox.collision_mask = 1 # Player layer
+
+	print("[Projectile] Collision layers updated: is_player=%s, layer=%d, mask=%d" % [
+		is_player_projectile, hitbox.collision_layer, hitbox.collision_mask
+	])
 
 ## Object Pooling: Reset projectile to default state when returned to pool
 func reset_for_pool() -> void:

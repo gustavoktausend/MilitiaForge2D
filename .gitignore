@@ -42,6 +42,11 @@ builds/
 exports/
 *.import
 
+# Random Shits
+NUL
+.bat
+.ps1
+
 # Temporary files
 *.tmp
 *.bak

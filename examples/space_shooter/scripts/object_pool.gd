@@ -104,9 +104,31 @@ func acquire() -> Node:
 	# Track as active
 	_active_objects.append(obj)
 
+	# CRITICAL FIX: Ensure object is in the tree
+	# If object is not in tree (can happen during initialization), re-add it
+	if not obj.is_inside_tree() and _pool_container:
+		# Remove and re-add to ensure proper tree entry
+		if obj.get_parent():
+			obj.get_parent().remove_child(obj)
+		_pool_container.add_child(obj)
+		print("[ObjectPool] acquire() - Re-added object to tree, waiting for tree entry...")
+		# Wait for next frame to ensure object enters tree
+		var tree = _pool_container.get_tree()
+		if tree:
+			await tree.process_frame
+		else:
+			push_warning("[ObjectPool] Container not in tree! Cannot await process_frame")
+
 	# Make visible and enable processing
 	obj.visible = true
 	obj.process_mode = Node.PROCESS_MODE_INHERIT
+
+	print("[ObjectPool] acquire() - Activated object: visible=%s, process_mode=%s, in_tree=%s, parent=%s" % [
+		obj.visible,
+		obj.process_mode,
+		obj.is_inside_tree(),
+		obj.get_parent().name if obj.get_parent() else "null"
+	])
 
 	return obj
 

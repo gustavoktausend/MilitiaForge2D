@@ -246,10 +246,17 @@ func _setup_components() -> void:
 		# Configure after adding to tree
 		await get_tree().process_frame
 		weapon.fire_rate = fire_rate
-		weapon.projectile_damage = projectile_damage
+		weapon.damage = projectile_damage  # FIXED: 'damage' instead of 'projectile_damage'
 		weapon.projectile_speed = 400.0
 		weapon.auto_fire = false
 		weapon.is_player_weapon = false # Enemy weapon, projectiles should target player
+		weapon.use_object_pooling = true  # Enable pooling
+		weapon.pooled_projectile_type = "enemy_laser"  # Use enemy laser pool
+		weapon.projectile_team = 1  # ProjectileComponent.Team.ENEMY (0=PLAYER, 1=ENEMY)
+
+		# CRITICAL: Manually setup pool manager since weapon is not in ComponentHost
+		if weapon.has_method("_setup_pool_manager"):
+			weapon._setup_pool_manager()
 
 		# Dependency Injection: Inject projectiles container into weapon
 		var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
@@ -422,7 +429,18 @@ func _update_movement(_delta: float) -> void:
 		movement_component.set_direction(direction.normalized())
 
 func _update_shooting(delta: float) -> void:
-	if not can_shoot or not weapon or not player or not physics_body:
+	if not can_shoot:
+		return
+
+	if not weapon:
+		if Engine.get_process_frames() % 60 == 0:  # Print once per second
+			print("[Enemy] %s: No weapon! can_shoot=%s" % [enemy_type, can_shoot])
+		return
+
+	if not player:
+		return
+
+	if not physics_body:
 		return
 
 	# Use timer-based shooting for more consistent fire rate
@@ -437,9 +455,14 @@ func _update_shooting(delta: float) -> void:
 		shoot_timer = 0.0
 		var shoot_position = physics_body.global_position
 		var shoot_direction = (player.global_position - shoot_position).normalized()
-		var did_fire = weapon.fire(shoot_position, shoot_direction)
-		if did_fire:
-			print("[Enemy] %s fired! Position: %v, Direction: %v" % [enemy_type, shoot_position, shoot_direction])
+		# Fire-and-forget pattern: call async method without await
+		# This works because we're calling it as a separate execution context
+		_fire_weapon_async(shoot_position, shoot_direction)
+		print("[Enemy] %s fired! Position: %v, Direction: %v" % [enemy_type, shoot_position, shoot_direction])
+
+## Async helper to fire weapon without blocking _process()
+func _fire_weapon_async(shoot_position: Vector2, shoot_direction: Vector2) -> void:
+	await weapon.fire_at(shoot_position, shoot_direction)
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	print("%s took %d damage! Health: %d/%d" % [_get_log_prefix(), amount, health_component.current_health, health_component.max_health])

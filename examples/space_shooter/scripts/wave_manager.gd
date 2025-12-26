@@ -142,11 +142,11 @@ func _update_spawning(delta: float) -> void:
 
 	if spawn_timer >= wave_data["spawn_delay"]:
 		spawn_timer = 0.0
-		_spawn_enemy(enemies_to_spawn.pop_front())
+		await _spawn_enemy(enemies_to_spawn.pop_front())
 
 func _spawn_enemy(enemy_data: Dictionary) -> void:
 	# Use EnemyFactory to create enemy with configuration
-	var enemy = EnemyFactory.create_from_wave_data(enemy_data)
+	var enemy = await EnemyFactory.create_from_wave_data(enemy_data)
 
 	if not enemy:
 		push_error("[WaveManager] Failed to create enemy from wave data: %s" % enemy_data)

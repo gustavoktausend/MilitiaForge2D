@@ -30,7 +30,7 @@ signal shield_upgraded(health_restored: int)
 var host: ComponentHost
 var movement: BoundedMovement
 var health: HealthComponent
-var simple_weapon: Node
+var weapon: SimpleWeapon  # Changed from simple_weapon: Node to weapon: SimpleWeapon (now a Component!)
 var input_component: InputComponent
 var score: ScoreComponent
 var particles: ParticleEffectComponent
@@ -184,30 +184,36 @@ func _setup_components() -> void:
 	_setup_input_actions()
 	host.add_component(input_component)
 
-	# Setup Simple Weapon
-	simple_weapon = Node.new()
-	simple_weapon.set_script(preload("res://examples/space_shooter/scripts/simple_weapon.gd"))
-	simple_weapon.name = "SimpleWeapon"
-	add_child(simple_weapon)
-	# Configure weapon after adding to tree
-	await get_tree().process_frame
-	simple_weapon.fire_rate = fire_rate
-	simple_weapon.projectile_damage = projectile_damage
-	simple_weapon.projectile_speed = 600.0
-	simple_weapon.auto_fire = false  # Disable auto_fire, we control firing manually
+	# Setup Simple Weapon (now a Component!)
+	weapon = SimpleWeapon.new()
 
-	# Dependency Injection: Inject projectiles container into weapon
+	# Configure weapon BEFORE adding to host
+	weapon.is_player_weapon = true
+	weapon.use_object_pooling = true
+	weapon.pooled_projectile_type = "player_laser"
+	weapon.fire_rate = fire_rate
+	weapon.damage = projectile_damage
+	weapon.projectile_speed = 600.0
+	weapon.auto_fire = false  # Disable auto_fire, we control firing manually
+	weapon.firing_offset = Vector2(0, -30)  # Fire from nose of ship
+	weapon.debug_weapon = true
+
+	# Load projectile scene (fallback for when pooling is disabled)
+	var player_projectile_scene = load("res://examples/space_shooter/scenes/projectile.tscn")
+	if player_projectile_scene:
+		weapon.projectile_scene = player_projectile_scene
+
+	# Add weapon component to host (this calls initialize() and component_ready())
+	host.add_component(weapon)
+
+	# Dependency Injection: Inject projectiles container into weapon (AFTER adding to host)
+	await get_tree().process_frame  # Wait for component_ready to complete
 	var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
-	if projectiles_container and simple_weapon.has_method("setup_weapon"):
-		simple_weapon.setup_weapon(projectiles_container)
+	if projectiles_container:
+		weapon.set_projectiles_container(projectiles_container)
 		print("[Player] Injected ProjectilesContainer into weapon")
 	else:
 		print("[Player] ProjectilesContainer not found, weapon will use fallback")
-
-	# Load projectile scene
-	var projectile_scene_instance = load("res://examples/space_shooter/scenes/projectile.tscn")
-	if projectile_scene_instance:
-		simple_weapon.projectile_scene = projectile_scene_instance
 
 	# Setup Score Component
 	score = ScoreComponent.new()
@@ -311,14 +317,14 @@ func _handle_movement() -> void:
 	movement.set_direction(direction)
 
 func _handle_shooting() -> void:
-	if not input_component or not simple_weapon:
+	if not input_component or not weapon:
 		return
 
 	if input_component.is_action_pressed("fire"):
-		var projectile_position = physics_body.global_position + Vector2(0, -30)
-		simple_weapon.fire(projectile_position, Vector2.UP)
+		# WeaponComponent handles position automatically (uses host + firing_offset)
+		weapon.fire()
 	else:
-		simple_weapon.stop_fire()
+		weapon.stop_fire()
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -369,14 +375,14 @@ func add_score(points: int) -> void:
 		score.add_score(points)
 
 func power_up_weapon() -> void:
-	if simple_weapon:
-		simple_weapon.projectile_damage += 5
-		simple_weapon.fire_rate = max(simple_weapon.fire_rate - 0.05, 0.1)
-		print("[Player] Weapon upgraded! Damage: %d, Fire rate: %.2f" % [simple_weapon.projectile_damage, simple_weapon.fire_rate])
+	if weapon:
+		# WeaponComponent has built-in upgrade system
+		weapon.upgrade()
+		print("[Player] Weapon upgraded! Damage: %d, Fire rate: %.2f" % [weapon.damage, weapon.fire_rate])
 
 		# Observer Pattern: Emit signal for UI/audio/VFX systems to react
-		weapon_upgraded.emit(simple_weapon.projectile_damage, simple_weapon.fire_rate)
-		powerup_collected.emit("weapon", {"damage": simple_weapon.projectile_damage, "fire_rate": simple_weapon.fire_rate})
+		weapon_upgraded.emit(weapon.damage, weapon.fire_rate)
+		powerup_collected.emit("weapon", {"damage": weapon.damage, "fire_rate": weapon.fire_rate})
 
 func power_up_shield() -> void:
 	if health:

@@ -111,6 +111,13 @@ enum WeaponType {
 
 ## Whether to print debug messages
 @export var debug_weapon: bool = false
+
+@export_group("Object Pooling")
+## Whether to use object pooling for projectiles
+@export var use_object_pooling: bool = false
+
+## Pool type identifier (e.g., "player_laser", "enemy_laser")
+@export var pooled_projectile_type: String = ""
 #endregion
 
 #region Private Variables
@@ -127,6 +134,12 @@ var _firing_point: Node2D = null
 
 ## Whether weapon is currently trying to fire
 var _wants_to_fire: bool = false
+
+## Reference to EntityPoolManager (if using pooling)
+var _pool_manager: Node = null
+
+## Container for spawned projectiles (dependency injection)
+var _projectiles_container: Node = null
 #endregion
 
 #region Component Lifecycle
@@ -141,26 +154,37 @@ func component_ready() -> void:
 	# Find firing point if specified
 	if use_firing_point and not firing_point_path.is_empty():
 		_firing_point = get_node_or_null(firing_point_path)
-		
+
 		if not _firing_point:
 			push_warning("[WeaponComponent] Firing point not found: %s" % firing_point_path)
-	
+
+	# Setup object pooling if enabled
+	if use_object_pooling:
+		_setup_pool_manager()
+
+	# Setup projectiles container fallback (can be overridden via set_projectiles_container)
+	if not _projectiles_container:
+		_setup_projectiles_container()
+
 	if debug_weapon:
-		print("[WeaponComponent] Ready - Type: %s, Rate: %.2f, Damage: %d" % [
+		print("[WeaponComponent] Ready - Type: %s, Rate: %.2f, Damage: %d, Pooling: %s" % [
 			WeaponType.keys()[weapon_type],
 			fire_rate,
-			damage
+			damage,
+			use_object_pooling
 		])
 
 func component_process(delta: float) -> void:
 	# Update cooldowns
 	if _fire_cooldown > 0:
 		_fire_cooldown -= delta
-	
+		if debug_weapon and _fire_cooldown <= 0:
+			print("[WeaponComponent] Cooldown reached zero!")
+
 	# Update burst
 	if _burst_active:
 		_update_burst(delta)
-	
+
 	# Auto-fire
 	if auto_fire and _wants_to_fire and _can_fire():
 		_execute_fire()
@@ -176,11 +200,15 @@ func cleanup() -> void:
 ## @returns: true if weapon fired, false otherwise
 func fire() -> bool:
 	_wants_to_fire = true
-	
+
 	if not _can_fire():
+		if debug_weapon:
+			print("[WeaponComponent] fire() called but _can_fire() returned false")
 		return false
-	
-	return _execute_fire()
+
+	if debug_weapon:
+		print("[WeaponComponent] fire() - executing!")
+	return await _execute_fire()
 
 ## Stop firing (for auto-fire)
 func stop_fire() -> void:
@@ -189,7 +217,7 @@ func stop_fire() -> void:
 ## Force fire regardless of cooldown (cheat/debug)
 func force_fire() -> void:
 	_fire_cooldown = 0.0
-	_execute_fire()
+	await _execute_fire()
 #endregion
 
 #region Public Methods - Ammo
@@ -266,25 +294,52 @@ func get_cooldown_percentage() -> float:
 	return clampf(_fire_cooldown / fire_rate, 0.0, 1.0)
 #endregion
 
+#region Public Methods - Configuration
+## Set projectiles container (Dependency Injection)
+##
+## @param container: Node where projectiles will be added as children
+func set_projectiles_container(container: Node) -> void:
+	_projectiles_container = container
+	if debug_weapon:
+		print("[WeaponComponent] Projectiles container set: %s" % container.name if container else "null")
+
+## Set pool manager manually (Dependency Injection)
+##
+## @param pool_manager: EntityPoolManager or ProjectilePoolManager instance
+func set_pool_manager(pool_manager: Node) -> void:
+	_pool_manager = pool_manager
+	if debug_weapon:
+		print("[WeaponComponent] Pool manager set: %s" % pool_manager.name if pool_manager else "null")
+#endregion
+
 #region Private Methods - Firing
 ## Check if weapon can fire
 func _can_fire() -> bool:
 	# Check cooldown
 	if _fire_cooldown > 0:
+		if debug_weapon:
+			print("[WeaponComponent] Cannot fire - cooldown: %.2fs" % _fire_cooldown)
 		return false
-	
+
 	# Check burst
 	if _burst_active:
+		if debug_weapon:
+			print("[WeaponComponent] Cannot fire - burst active")
 		return false
-	
+
 	# Check ammo
 	if not has_ammo():
+		if debug_weapon:
+			print("[WeaponComponent] Cannot fire - no ammo")
 		return false
-	
-	# Check projectile scene
-	if not projectile_scene:
+
+	# Check if we have EITHER pooling OR projectile scene
+	var has_spawn_method = (use_object_pooling and _pool_manager and not pooled_projectile_type.is_empty()) or projectile_scene != null
+	if not has_spawn_method:
+		if debug_weapon:
+			push_warning("[WeaponComponent] Cannot fire - no projectile scene AND pooling not available")
 		return false
-	
+
 	return true
 
 ## Execute firing
@@ -299,22 +354,22 @@ func _execute_fire() -> bool:
 	
 	# Fire based on type
 	var projectile_count = 0
-	
+
 	match weapon_type:
 		WeaponType.SINGLE:
-			_fire_single()
+			await _fire_single()
 			projectile_count = 1
-			
+
 		WeaponType.SPREAD:
-			_fire_spread()
+			await _fire_spread()
 			projectile_count = spread_count
-			
+
 		WeaponType.BURST:
-			_start_burst()
+			await _start_burst()
 			projectile_count = burst_count
-			
+
 		WeaponType.BEAM:
-			_fire_beam()
+			await _fire_beam()
 			projectile_count = 1
 	
 	# Set cooldown
@@ -333,37 +388,37 @@ func _execute_fire() -> bool:
 
 ## Fire single projectile
 func _fire_single() -> void:
-	_spawn_projectile(Vector2.UP, 0.0)
+	await _spawn_projectile(Vector2.UP, 0.0)
 
 ## Fire spread pattern
 func _fire_spread() -> void:
 	var half_spread = (spread_count - 1) / 2.0
-	
+
 	for i in range(spread_count):
 		var angle_offset = (i - half_spread) * spread_angle
-		_spawn_projectile(Vector2.UP, angle_offset)
+		await _spawn_projectile(Vector2.UP, angle_offset)
 
 ## Start burst firing
 func _start_burst() -> void:
 	_burst_active = true
 	_burst_remaining = burst_count
 	_burst_timer = 0.0
-	
+
 	# Fire first shot immediately
-	_fire_burst_shot()
+	await _fire_burst_shot()
 
 ## Update burst firing
 func _update_burst(delta: float) -> void:
 	_burst_timer -= delta
-	
+
 	if _burst_timer <= 0 and _burst_remaining > 0:
-		_fire_burst_shot()
+		await _fire_burst_shot()
 
 ## Fire single burst shot
 func _fire_burst_shot() -> void:
-	_spawn_projectile(Vector2.UP, 0.0)
+	await _spawn_projectile(Vector2.UP, 0.0)
 	_burst_remaining -= 1
-	
+
 	if _burst_remaining > 0:
 		_burst_timer = burst_delay
 	else:
@@ -373,7 +428,7 @@ func _fire_burst_shot() -> void:
 func _fire_beam() -> void:
 	# Beams need different handling than projectiles
 	# For now, just spawn a projectile
-	_spawn_projectile(Vector2.UP, 0.0)
+	await _spawn_projectile(Vector2.UP, 0.0)
 #endregion
 
 #region Private Methods - Spawning
@@ -382,50 +437,129 @@ func _fire_beam() -> void:
 ## @param base_direction: Base direction (usually UP for vertical shooter)
 ## @param angle_offset: Angle offset in degrees
 func _spawn_projectile(base_direction: Vector2, angle_offset: float) -> void:
-	if not projectile_scene:
-		return
-	
-	# Instantiate projectile
-	var projectile = projectile_scene.instantiate()
-	
-	# Calculate spawn position
 	var spawn_pos = _get_firing_position()
-	
-	# Calculate direction with angle offset
 	var direction = base_direction.rotated(deg_to_rad(angle_offset))
-	
-	# Set projectile properties if it has ProjectileComponent
-	var projectile_comp = null
-	if projectile.has_node("ComponentHost"):
-		var host_comp = projectile.get_node("ComponentHost")
-		# Wait for components to initialize
-		await get_tree().process_frame
-		projectile_comp = host_comp.get_component("ProjectileComponent")
-	
-	if projectile_comp:
-		projectile_comp.damage = damage
-		projectile_comp.speed = projectile_speed
-		projectile_comp.direction = direction
-		projectile_comp.team = projectile_team
-	
-	# Set initial position
-	projectile.global_position = spawn_pos
-	
-	# Add to scene
-	get_tree().root.add_child(projectile)
-	
-	if debug_weapon:
-		print("[WeaponComponent] Spawned projectile at %s, direction: %s" % [spawn_pos, direction])
+	var projectile: Node2D = null
+
+	# Try object pooling first (if enabled)
+	if use_object_pooling and _pool_manager and not pooled_projectile_type.is_empty():
+		# Check if pool manager has spawn_projectile method (EntityPoolManager or ProjectilePoolManager)
+		if _pool_manager.has_method("spawn_projectile"):
+			projectile = await _pool_manager.spawn_projectile(
+				pooled_projectile_type,
+				spawn_pos,
+				direction,
+				projectile_speed,
+				damage,
+				projectile_team == ProjectileComponent.Team.PLAYER
+			)
+
+			if projectile and debug_weapon:
+				print("[WeaponComponent] ✅ Spawned projectile from pool: %s" % pooled_projectile_type)
+		elif _pool_manager.has_method("spawn_entity"):
+			# EntityPoolManager method
+			projectile = await _pool_manager.spawn_entity(pooled_projectile_type, {
+				"position": spawn_pos,
+				"direction": direction,
+				"speed": projectile_speed,
+				"damage": damage,
+				"team": projectile_team,
+				"is_player_projectile": projectile_team == ProjectileComponent.Team.PLAYER
+			})
+
+			if projectile and debug_weapon:
+				print("[WeaponComponent] ✅ Spawned projectile from pool (entity): %s" % pooled_projectile_type)
+
+	# Fallback to traditional instantiation
+	if not projectile:
+		if not projectile_scene:
+			if debug_weapon:
+				push_warning("[WeaponComponent] No projectile scene assigned!")
+			return
+
+		projectile = projectile_scene.instantiate()
+
+		# Set projectile properties if it has ProjectileComponent
+		var projectile_comp = null
+		if projectile.has_node("ComponentHost"):
+			var host_comp = projectile.get_node("ComponentHost")
+			# Wait for components to initialize
+			await get_tree().process_frame
+			projectile_comp = host_comp.get_component("ProjectileComponent")
+
+		if projectile_comp:
+			projectile_comp.damage = damage
+			projectile_comp.speed = projectile_speed
+			projectile_comp.direction = direction
+			projectile_comp.team = projectile_team
+
+		# Set initial position
+		projectile.global_position = spawn_pos
+
+		# Add to scene (use container if available, otherwise root)
+		if _projectiles_container:
+			_projectiles_container.add_child(projectile)
+		else:
+			get_tree().root.add_child(projectile)
+
+		if debug_weapon:
+			print("[WeaponComponent] ⚠️ Spawned projectile via instantiate() at %s" % spawn_pos)
 
 ## Get the position to spawn projectiles
 func _get_firing_position() -> Vector2:
 	if _firing_point:
+		if debug_weapon:
+			print("[WeaponComponent] Using firing_point: %s" % _firing_point.global_position)
 		return _firing_point.global_position
-	
+
 	if host:
-		return host.global_position + firing_offset
-	
+		# Try to find the physics body (CharacterBody2D) first, as it's what actually moves
+		var physics_body = host.get_node_or_null("Body")
+		if physics_body:
+			var pos = physics_body.global_position + firing_offset
+			if debug_weapon:
+				print("[WeaponComponent] Using physics_body position: %s + offset %s = %s" % [physics_body.global_position, firing_offset, pos])
+			return pos
+
+		# Fallback to host position if no physics body found
+		var pos = host.global_position + firing_offset
+		if debug_weapon:
+			print("[WeaponComponent] Using host position: %s + offset %s = %s" % [host.global_position, firing_offset, pos])
+		return pos
+
+	if debug_weapon:
+		push_error("[WeaponComponent] No host or firing_point! Returning ZERO")
 	return Vector2.ZERO
+
+## Setup pool manager (try EntityPoolManager first, then ProjectilePoolManager)
+func _setup_pool_manager() -> void:
+	# Try new EntityPoolManager first (registered as autoload)
+	_pool_manager = get_node_or_null("/root/EntityPoolManager")
+
+	# If not found, try legacy ProjectilePoolManager
+	if not _pool_manager:
+		_pool_manager = get_node_or_null("/root/ProjectilePoolManager")
+
+	if _pool_manager:
+		if debug_weapon:
+			print("[WeaponComponent] ✅ Found pool manager: %s" % _pool_manager.name)
+	else:
+		if debug_weapon:
+			push_warning("[WeaponComponent] ⚠️ Pool manager not found - pooling disabled (use_object_pooling=%s)" % use_object_pooling)
+
+## Setup projectiles container (fallback method)
+func _setup_projectiles_container() -> void:
+	# Look for "ProjectilesContainer" group (note: case-sensitive!)
+	var containers = get_tree().get_nodes_in_group("ProjectilesContainer")
+	if containers.size() > 0:
+		_projectiles_container = containers[0]
+		if debug_weapon:
+			print("[WeaponComponent] Found projectiles_container via group: %s" % _projectiles_container.name)
+	else:
+		# Use root as fallback
+		_projectiles_container = get_tree().root
+		if debug_weapon:
+			print("[WeaponComponent] Using root as projectiles_container (fallback)")
 #endregion
 
 #region Private Methods - Upgrades

@@ -150,16 +150,16 @@ func _state_peek() -> void:
 
 func _state_shoot() -> void:
 	velocity.x = 0
-	
+
 	# Fire at player
 	if weapon and player_ref:
 		# Aim at player
 		var direction_to_player = (player_ref.global_position - global_position).normalized()
-		
+
 		# Only shoot if player is roughly horizontal
 		if abs(direction_to_player.y) < 0.5:
 			weapon.fire()
-	
+
 	# Return to hiding
 	_change_state(State.HIDE)
 

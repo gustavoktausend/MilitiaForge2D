@@ -1,137 +1,90 @@
-## Simple Weapon System for Space Shooter
+## Simple Weapon for Space Shooter
 ##
-## Simplified weapon that spawns projectiles.
-## Integrates with player controller.
+## Simplified weapon component that extends WeaponComponent from the core framework.
+## Demonstrates how to use the framework's weapon system with custom configurations.
+##
+## Now properly inherits from WeaponComponent (eliminating 100+ lines of duplication!)
 
-extends Node
+class_name SimpleWeapon extends WeaponComponent
 
-#region Signals
-## Emitted when weapon successfully fires a projectile
-## Observer Pattern: Allows systems to react to firing (UI, audio, stats, etc.)
-signal weapon_fired(projectile: Node2D, direction: Vector2)
-
-## Emitted when fire attempt fails (cooldown, no ammo, etc.)
-signal fire_failed(reason: String)
+#region Configuration
+## Whether this is a player weapon (affects collision layers)
+@export var is_player_weapon: bool = true
 #endregion
 
-#region Exports
-@export var projectile_scene: PackedScene
-@export var fire_rate: float = 0.2
-@export var projectile_speed: float = 600.0
-@export var projectile_damage: int = 10
-@export var auto_fire: bool = true
-@export var is_player_weapon: bool = true  # Determines projectile collision layers
-@export var use_object_pooling: bool = true  # Use ProjectilePoolManager if available
-@export var pooled_projectile_type: String = "player_laser"  # Type for pool manager
+#region Component Lifecycle
+func initialize(host_node: ComponentHost) -> void:
+	# Set team based on player/enemy (if not already set)
+	if projectile_team == ProjectileComponent.Team.PLAYER:
+		# Default is already PLAYER, check if we need to change
+		if not is_player_weapon:
+			projectile_team = ProjectileComponent.Team.ENEMY
+
+	# Set pooled projectile type based on player/enemy (if not already set)
+	if pooled_projectile_type.is_empty():
+		pooled_projectile_type = "player_laser" if is_player_weapon else "enemy_laser"
+
+	super.initialize(host_node)
+
+func component_ready() -> void:
+	super.component_ready()
+
+	print("[SimpleWeapon] Ready - Player: %s, Pooling: %s, Type: %s, Team: %s, AutoFire: %s" % [
+		is_player_weapon,
+		use_object_pooling,
+		pooled_projectile_type,
+		ProjectileComponent.Team.keys()[projectile_team],
+		auto_fire
+	])
 #endregion
 
-#region Private Variables
-var fire_cooldown: float = 0.0
-var wants_to_fire: bool = false
-var projectiles_container: Node = null
-var _pool_manager: Node = null  # Reference to ProjectilePoolManager (if available)
-#endregion
-
-func _ready() -> void:
-	# Container will be injected via setup_weapon() - Dependency Injection pattern
-	# Fallback to searching if not injected (for backwards compatibility)
-	if not projectiles_container:
-		call_deferred("_find_projectiles_container")
-
-	# Try to find ProjectilePoolManager if using object pooling
-	if use_object_pooling:
-		_pool_manager = get_node_or_null("/root/ProjectilePoolManager")
-		if _pool_manager:
-			print("[SimpleWeapon] ✅ Found ProjectilePoolManager - using object pooling")
-		else:
-			print("[SimpleWeapon] ⚠️ ProjectilePoolManager not found - falling back to instantiate()")
-
-## Dependency Injection: Setup weapon with projectiles container
-## This decouples SimpleWeapon from scene tree structure
-func setup_weapon(container: Node) -> void:
-	projectiles_container = container
-	print("[SimpleWeapon] Projectiles container injected: %s" % container.name if container else "null")
-
-func _find_projectiles_container() -> void:
-	# Fallback method for backwards compatibility
-	var containers = get_tree().get_nodes_in_group("projectiles_container")
-	if containers.size() > 0:
-		projectiles_container = containers[0]
-		print("[SimpleWeapon] Found projectiles_container via group search (fallback)")
-	else:
-		# Use root as last resort
-		projectiles_container = get_tree().root
-		push_warning("[SimpleWeapon] No projectiles_container found, using root as fallback")
-
-func _process(delta: float) -> void:
-	if fire_cooldown > 0:
-		fire_cooldown -= delta
-
-	if auto_fire and wants_to_fire and can_fire():
-		execute_fire(get_parent().global_position, Vector2.UP)
-
-func fire(position: Vector2, direction: Vector2) -> bool:
-	wants_to_fire = true
-
-	if not can_fire():
-		if fire_cooldown > 0:
-			fire_failed.emit("cooldown")
-		elif not projectile_scene:
-			fire_failed.emit("no_projectile_scene")
+#region Public API (compatibility with old SimpleWeapon interface)
+## Fire at specific position and direction (compatibility method)
+##
+## @param spawn_position: Global position to spawn projectile
+## @param fire_direction: Direction to fire
+## @returns: true if weapon fired successfully
+func fire_at(spawn_position: Vector2, fire_direction: Vector2) -> bool:
+	# Check if can fire
+	if not _can_fire():
+		print("[SimpleWeapon] fire_at() - Cannot fire (cooldown or other)")
 		return false
 
-	return execute_fire(position, direction)
+	# Set cooldown
+	_fire_cooldown = fire_rate
 
-func stop_fire() -> void:
-	wants_to_fire = false
-
-func can_fire() -> bool:
-	return fire_cooldown <= 0 and projectile_scene != null
-
-func execute_fire(spawn_position: Vector2, direction: Vector2) -> bool:
+	# Spawn projectile directly with custom position and direction
 	var projectile: Node2D = null
 
-	# Try object pooling first (if enabled and available)
-	if use_object_pooling and _pool_manager and _pool_manager.has_method("spawn_projectile"):
-		projectile = _pool_manager.spawn_projectile(
-			pooled_projectile_type,
-			spawn_position,
-			direction,
-			projectile_speed,
-			projectile_damage,
-			is_player_weapon
-		)
+	# Use object pooling (enemy weapons should have this enabled)
+	print("[SimpleWeapon] fire_at() - pooling=%s, manager=%s, type=%s" % [use_object_pooling, _pool_manager != null, pooled_projectile_type])
+	if use_object_pooling and _pool_manager and not pooled_projectile_type.is_empty():
+		if _pool_manager.has_method("spawn_entity"):
+			print("[SimpleWeapon] fire_at() - Calling spawn_entity for %s" % pooled_projectile_type)
+			projectile = await _pool_manager.spawn_entity(pooled_projectile_type, {
+				"position": spawn_position,
+				"direction": fire_direction.normalized(),
+				"speed": projectile_speed,
+				"damage": damage,
+				"is_player_projectile": projectile_team == ProjectileComponent.Team.PLAYER
+			})
+			print("[SimpleWeapon] fire_at() - spawn_entity returned: %s" % (projectile != null))
 
-		if not projectile:
-			push_warning("[SimpleWeapon] Pool spawn failed, falling back to instantiate()")
+	if projectile:
+		weapon_fired.emit(1)
+		return true
 
-	# Fallback to traditional instantiation
-	if not projectile:
-		if not projectile_scene:
-			fire_failed.emit("no_projectile_scene")
-			return false
+	print("[SimpleWeapon] fire_at() - Failed to spawn projectile!")
+	return false
 
-		projectile = projectile_scene.instantiate()
+## Setup weapon with projectiles container (Dependency Injection)
+##
+## @param container: Node where projectiles will be added
+func setup_weapon(container: Node) -> void:
+	set_projectiles_container(container)
+	print("[SimpleWeapon] Projectiles container set: %s" % container.name if container else "null")
 
-		# Set projectile properties
-		if projectile.has_method("set_direction"):
-			projectile.set_direction(direction)
-
-		projectile.speed = projectile_speed
-		projectile.damage = projectile_damage
-		projectile.is_player_projectile = is_player_weapon
-		projectile.global_position = spawn_position
-
-		# Add to scene
-		if projectiles_container:
-			projectiles_container.add_child(projectile)
-		else:
-			get_tree().root.add_child(projectile)
-
-	# Set cooldown
-	fire_cooldown = fire_rate
-
-	# Observer Pattern: Emit signal so systems can react to weapon firing
-	weapon_fired.emit(projectile, direction)
-
-	return true
+## Stop firing (for auto-fire mode)
+func stop_fire_weapon() -> void:
+	stop_fire()
+#endregion
