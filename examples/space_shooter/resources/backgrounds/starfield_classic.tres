@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="BackgroundData" load_steps=2 format=3 uid="uid://df72gfyhyguwr"]
+
+[ext_resource type="Script" uid="uid://1blvhewumn8f" path="res://examples/space_shooter/resources/background_data.gd" id="1_fu41s"]
+
+[resource]
+script = ExtResource("1_fu41s")
+background_color = Color(0, 0, 0, 1)
+background_name = "Campo de Estrelas Clássico"

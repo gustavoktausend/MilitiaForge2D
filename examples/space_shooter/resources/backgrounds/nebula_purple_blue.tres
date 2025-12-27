@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="BackgroundData" load_steps=2 format=3 uid="uid://cuth15jois6uf"]
+
+[ext_resource type="Script" uid="uid://1blvhewumn8f" path="res://examples/space_shooter/resources/background_data.gd" id="1_mfs2n"]
+
+[resource]
+script = ExtResource("1_mfs2n")
+background_color = Color(0.02, 0.02, 0.1, 1)
+background_name = "Nebulosa Roxa e Azul"
