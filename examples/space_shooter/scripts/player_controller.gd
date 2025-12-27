@@ -23,22 +23,32 @@ signal shield_upgraded(health_restored: int)
 ## Ship configuration (optional - if null, uses default values)
 @export var ship_config: ShipConfig
 
+## Pilot configuration (loaded from PlayerData)
+var pilot_data: PilotData
+
 ## Default values (used if ship_config is null)
 @export var move_speed: float = 300.0
 @export var max_health: int = 100
 @export var fire_rate: float = 0.2
 @export var projectile_damage: int = 10
 @export var projectile_speed: float = 600.0
+
+## Weapon Configuration (uses WeaponDatabase)
+@export_group("Weapons")
+@export_enum("basic_laser", "spread_shot", "rapid_fire") var primary_weapon_name: String = "basic_laser"
+@export_enum("homing_missile", "shotgun_blast", "burst_cannon") var secondary_weapon_name: String = ""
+@export_enum("plasma_bomb", "railgun", "emp_pulse") var special_weapon_name: String = ""
 #endregion
 
 #region Component References
 var host: ComponentHost
 var movement: BoundedMovement
 var health: HealthComponent
-var weapon: SimpleWeapon  # Changed from simple_weapon: Node to weapon: SimpleWeapon (now a Component!)
+var weapon_manager: WeaponSlotManager  # Manages multiple weapon slots (PRIMARY, SECONDARY, SPECIAL)
 var input_component: InputComponent
 var score: ScoreComponent
 var particles: ParticleEffectComponent
+var pilot_abilities: PilotAbilitySystem  # Handles pilot special abilities
 var physics_body: CharacterBody2D  # Reference to the physics body
 #endregion
 
@@ -56,7 +66,23 @@ func _ready() -> void:
 	else:
 		print("[Player] No ship config available, using default values")
 
+	# Load pilot data from PlayerData
+	if has_node("/root/PlayerData"):
+		var player_data = get_node("/root/PlayerData")
+		pilot_data = player_data.get_selected_pilot()
+		if pilot_data:
+			print("[Player] 🎖️ Loaded pilot: %s (%s) %s" % [
+				pilot_data.pilot_name,
+				pilot_data.archetype,
+				pilot_data.get_difficulty_stars()
+			])
+		else:
+			print("[Player] No pilot selected, using baseline stats")
+	else:
+		print("[Player] PlayerData not found, no pilot bonuses applied")
+
 	_apply_ship_config()
+	_apply_pilot_modifiers()
 	await _setup_components()
 	_setup_visuals()
 	_connect_signals()
@@ -74,6 +100,48 @@ func _apply_ship_config() -> void:
 	else:
 		print("[Player] Using default stats - Speed: %.0f, Health: %d, FireRate: %.2f, Damage: %d" %
 			[move_speed, max_health, fire_rate, projectile_damage])
+
+## Apply pilot modifiers (if pilot selected)
+## Modifies ship stats based on pilot bonuses
+func _apply_pilot_modifiers() -> void:
+	if not pilot_data:
+		print("[Player] No pilot bonuses to apply")
+		return
+
+	print("╔════════════════════════════════════════════════════════════╗")
+	print("║          🎖️  APPLYING PILOT BONUSES 🎖️                    ║")
+	print("╠════════════════════════════════════════════════════════════╣")
+	print("║ Pilot: %s" % pilot_data.pilot_name)
+	print("║ Archetype: %s" % pilot_data.archetype)
+	print("╚════════════════════════════════════════════════════════════╝")
+
+	# Store original values for comparison
+	var original_health = max_health
+	var original_speed = move_speed
+
+	# Apply base stat modifiers
+	max_health = int(max_health * pilot_data.health_modifier)
+	move_speed = move_speed * pilot_data.speed_modifier
+
+	# Global damage and fire rate modifiers (applied to weapons later)
+	# These are stored and applied in _load_weapons_from_database()
+
+	# Log changes
+	print("[Player] Health: %d -> %d (%+d%%)" % [
+		original_health,
+		max_health,
+		int((pilot_data.health_modifier - 1.0) * 100)
+	])
+	print("[Player] Speed: %.0f -> %.0f (%+d%%)" % [
+		original_speed,
+		move_speed,
+		int((pilot_data.speed_modifier - 1.0) * 100)
+	])
+
+	if pilot_data.primary_ability != PilotData.AbilityType.NONE:
+		print("[Player] 🌟 Special Ability: %s" % PilotData.AbilityType.keys()[pilot_data.primary_ability])
+
+	print("╚════════════════════════════════════════════════════════════╝")
 
 func _setup_components() -> void:
 	print("╔═══════════════════════════════════════════════════════╗")
@@ -162,7 +230,18 @@ func _setup_components() -> void:
 	health = HealthComponent.new()
 	health.max_health = max_health
 	health.invincibility_enabled = true
-	health.invincibility_duration = 0.5  # Reduced from 2.0 to 0.5 seconds
+
+	# Base invincibility duration (modified by pilot)
+	var base_invincibility = 0.5  # Base: 0.5 seconds
+	if pilot_data:
+		health.invincibility_duration = base_invincibility * pilot_data.invincibility_duration_modifier
+		print("[Player] Invincibility: %.2fs (%.0f%% modifier)" % [
+			health.invincibility_duration,
+			pilot_data.invincibility_duration_modifier * 100
+		])
+	else:
+		health.invincibility_duration = base_invincibility
+
 	health.debug_health = true
 	host.add_component(health)
 	print("[Player] HealthComponent created: %d/%d HP" % [health.current_health, health.max_health])
@@ -217,36 +296,33 @@ func _setup_components() -> void:
 	_setup_input_actions()
 	host.add_component(input_component)
 
-	# Setup Simple Weapon (now a Component!)
-	weapon = SimpleWeapon.new()
+	# Setup Weapon Slot Manager (manages PRIMARY, SECONDARY, SPECIAL weapons)
+	print("[Player] Creating WeaponSlotManager...")
+	weapon_manager = WeaponSlotManager.new()
+	weapon_manager.debug_slots = true
+	weapon_manager.auto_handle_input = false  # We handle input manually via InputComponent
 
-	# Configure weapon BEFORE adding to host
-	weapon.is_player_weapon = true
-	weapon.use_object_pooling = true
-	weapon.pooled_projectile_type = "player_laser"
-	weapon.fire_rate = fire_rate
-	weapon.damage = projectile_damage
-	weapon.projectile_speed = projectile_speed
-	weapon.auto_fire = false  # Disable auto_fire, we control firing manually
-	weapon.firing_offset = Vector2(0, -30)  # Fire from nose of ship
-	weapon.debug_weapon = true
+	# Configure input actions for weapon manager
+	weapon_manager.primary_secondary_action = "fire"
+	weapon_manager.special_action = "fire_special"
 
-	# Load projectile scene (fallback for when pooling is disabled)
-	var player_projectile_scene = load("res://examples/space_shooter/scenes/projectile.tscn")
-	if player_projectile_scene:
-		weapon.projectile_scene = player_projectile_scene
+	# Load weapons from WeaponDatabase (Factory Pattern)
+	# This follows Open/Closed Principle - add new weapons without modifying this code
+	_load_weapons_from_database()
 
-	# Add weapon component to host (this calls initialize() and component_ready())
-	host.add_component(weapon)
+	# Add weapon manager component to host
+	host.add_component(weapon_manager)
+	print("[Player] WeaponSlotManager created and added to host")
 
-	# Dependency Injection: Inject projectiles container into weapon (AFTER adding to host)
-	await get_tree().process_frame  # Wait for component_ready to complete
+	# Wait for weapon manager to initialize
+	await get_tree().process_frame
+
+	# Dependency Injection: Set projectiles container for all weapons
 	var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
 	if projectiles_container:
-		weapon.set_projectiles_container(projectiles_container)
-		print("[Player] Injected ProjectilesContainer into weapon")
+		print("[Player] ProjectilesContainer found for weapons")
 	else:
-		print("[Player] ProjectilesContainer not found, weapon will use fallback")
+		print("[Player] ProjectilesContainer not found, weapons will use fallback")
 
 	# Setup Score Component
 	score = ScoreComponent.new()
@@ -258,6 +334,17 @@ func _setup_components() -> void:
 	particles = ParticleEffectComponent.new()
 	host.add_component(particles)
 
+	# Setup Pilot Ability System (if pilot selected)
+	if pilot_data:
+		print("[Player] Creating PilotAbilitySystem...")
+		pilot_abilities = PilotAbilitySystem.new()
+		pilot_abilities.pilot_data = pilot_data
+		pilot_abilities.debug_abilities = true
+		host.add_component(pilot_abilities)
+		print("[Player] PilotAbilitySystem created with pilot: %s" % pilot_data.pilot_name)
+	else:
+		print("[Player] No pilot selected, PilotAbilitySystem not created")
+
 	print("╔═══════════════════════════════════════════════════════╗")
 	print("║        ✅ PLAYER SETUP COMPLETED ✅                   ║")
 	print("╚═══════════════════════════════════════════════════════╝")
@@ -268,7 +355,11 @@ func _setup_input_actions() -> void:
 	input_component.add_action("move_down", [KEY_S, KEY_DOWN])
 	input_component.add_action("move_left", [KEY_A, KEY_LEFT])
 	input_component.add_action("move_right", [KEY_D, KEY_RIGHT])
-	input_component.add_action("fire", [KEY_SPACE])
+
+	# Weapon actions
+	input_component.add_action("fire", [KEY_SPACE])  # PRIMARY + SECONDARY weapons
+	input_component.add_action("fire_special", [KEY_ALT])  # SPECIAL weapon
+	input_component.add_action("toggle_secondary", [KEY_Z])  # Toggle SECONDARY on/off
 
 func _setup_visuals() -> void:
 	# Determine sprite to use (from config or default)
@@ -347,6 +438,13 @@ func _connect_signals() -> void:
 	print("[Player] Connecting health.health_changed...")
 	health.health_changed.connect(_on_health_changed)
 
+	# Connect to weapon manager signals (Observer Pattern)
+	if weapon_manager:
+		print("[Player] Connecting weapon_manager.secondary_toggled...")
+		weapon_manager.secondary_toggled.connect(_on_secondary_toggled)
+		print("[Player] Connecting weapon_manager.weapon_empty...")
+		weapon_manager.weapon_empty.connect(_on_weapon_empty)
+
 	print("[Player] ✅ All signals connected!")
 
 	# Notify that player is fully ready
@@ -356,6 +454,7 @@ func _connect_signals() -> void:
 func _process(_delta: float) -> void:
 	_handle_movement()
 	_handle_shooting()
+	_handle_weapon_toggle()
 
 func _handle_movement() -> void:
 	if not input_component or not movement:
@@ -375,14 +474,36 @@ func _handle_movement() -> void:
 	movement.set_direction(direction)
 
 func _handle_shooting() -> void:
-	if not input_component or not weapon:
+	if not input_component or not weapon_manager:
 		return
 
+	# PRIMARY + SECONDARY weapons (fire together with SPACE)
 	if input_component.is_action_pressed("fire"):
-		# WeaponComponent handles position automatically (uses host + firing_offset)
-		weapon.fire()
-	else:
-		weapon.stop_fire()
+		weapon_manager.fire_primary_and_secondary()
+
+	# SPECIAL weapon (independent with ALT)
+	if input_component.is_action_just_pressed("fire_special"):
+		weapon_manager.fire_special()
+
+func _handle_weapon_toggle() -> void:
+	if not input_component or not weapon_manager:
+		return
+
+	# Toggle SECONDARY weapon on/off with Z
+	# This follows Command Pattern - user action triggers state change
+	if input_component.is_action_just_pressed("toggle_secondary"):
+		var enabled = weapon_manager.toggle_secondary_weapon()
+
+		# Visual/Audio feedback (Observer Pattern)
+		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		if enabled:
+			print("[Player] 🟢 SECONDARY WEAPON ENABLED")
+		else:
+			print("[Player] 🔴 SECONDARY WEAPON DISABLED")
+		print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+		# TODO: Play toggle sound effect
+		# TODO: Show UI notification
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -411,6 +532,25 @@ func _flash_damage() -> void:
 func _on_health_changed(new_health: int, old_health: int) -> void:
 	print("[Player] Health changed: %d -> %d" % [old_health, new_health])
 
+func _on_secondary_toggled(enabled: bool) -> void:
+	# Observer Pattern: React to SECONDARY weapon toggle
+	# This is where you'd play sounds, show UI notifications, etc.
+	if enabled:
+		print("[Player] 🎯 SECONDARY weapon is now ACTIVE")
+		# TODO: Play "weapon activated" sound
+		# TODO: Show green indicator on HUD
+	else:
+		print("[Player] 💤 SECONDARY weapon is now INACTIVE")
+		# TODO: Play "weapon deactivated" sound
+		# TODO: Show red/gray indicator on HUD
+
+func _on_weapon_empty(slot: int) -> void:
+	# Observer Pattern: React to weapon running out of ammo
+	var category_name = WeaponData.Category.keys()[slot]
+	print("[Player] ⚠️ %s weapon is EMPTY!" % category_name)
+	# TODO: Play "empty click" sound
+	# TODO: Show low ammo warning on HUD
+
 func _on_player_died() -> void:
 	print("╔═══════════════════════════════════════╗")
 	print("║   💀 PLAYER DIED! GAME OVER 💀        ║")
@@ -433,14 +573,23 @@ func add_score(points: int) -> void:
 		score.add_score(points)
 
 func power_up_weapon() -> void:
-	if weapon:
-		# WeaponComponent has built-in upgrade system
-		weapon.upgrade()
-		print("[Player] Weapon upgraded! Damage: %d, Fire rate: %.2f" % [weapon.damage, weapon.fire_rate])
+	if weapon_manager:
+		# Upgrade PRIMARY weapon (slot 0)
+		var primary_weapon_comp = weapon_manager.get_weapon_component(WeaponData.Category.PRIMARY)
+		if primary_weapon_comp:
+			# WeaponComponent has built-in upgrade system
+			primary_weapon_comp.upgrade()
+			print("[Player] PRIMARY weapon upgraded! Damage: %d, Fire rate: %.2f" % [
+				primary_weapon_comp.damage,
+				primary_weapon_comp.fire_rate
+			])
 
-		# Observer Pattern: Emit signal for UI/audio/VFX systems to react
-		weapon_upgraded.emit(weapon.damage, weapon.fire_rate)
-		powerup_collected.emit("weapon", {"damage": weapon.damage, "fire_rate": weapon.fire_rate})
+			# Observer Pattern: Emit signal for UI/audio/VFX systems to react
+			weapon_upgraded.emit(primary_weapon_comp.damage, primary_weapon_comp.fire_rate)
+			powerup_collected.emit("weapon", {
+				"damage": primary_weapon_comp.damage,
+				"fire_rate": primary_weapon_comp.fire_rate
+			})
 
 func power_up_shield() -> void:
 	if health:
@@ -451,3 +600,109 @@ func power_up_shield() -> void:
 		# Observer Pattern: Emit signal for UI/audio/VFX systems to react
 		shield_upgraded.emit(health_restored)
 		powerup_collected.emit("shield", health_restored)
+
+#region Private Helper Methods
+## Load weapons from WeaponDatabase based on configuration
+## Follows Factory Pattern - delegates weapon creation to WeaponDatabase
+## Follows Dependency Inversion - depends on WeaponDatabase abstraction
+func _load_weapons_from_database() -> void:
+	print("╔════════════════════════════════════════════════════╗")
+	print("║          🔫 LOADING WEAPONS 🔫                    ║")
+	print("╚════════════════════════════════════════════════════╝")
+
+	# Load PRIMARY weapon (always required)
+	if not primary_weapon_name.is_empty():
+		var primary = WeaponDatabase.get_primary_weapon(primary_weapon_name)
+		if primary:
+			# Override damage/stats with ship config if available
+			if ship_config:
+				primary.damage = projectile_damage
+				primary.fire_rate = fire_rate
+				primary.projectile_speed = projectile_speed
+
+			# Apply pilot modifiers to PRIMARY weapon
+			_apply_pilot_weapon_modifiers(primary, WeaponData.Category.PRIMARY)
+
+			weapon_manager.primary_weapon = primary
+			print("[Player] ✅ PRIMARY: %s (Damage: %d, FireRate: %.2f)" % [
+				primary.weapon_name,
+				primary.damage,
+				primary.fire_rate
+			])
+		else:
+			push_error("[Player] Failed to load PRIMARY weapon: %s" % primary_weapon_name)
+
+	# Load SECONDARY weapon (optional)
+	if not secondary_weapon_name.is_empty():
+		var secondary = WeaponDatabase.get_secondary_weapon(secondary_weapon_name)
+		if secondary:
+			# Apply pilot modifiers to SECONDARY weapon
+			_apply_pilot_weapon_modifiers(secondary, WeaponData.Category.SECONDARY)
+
+			weapon_manager.secondary_weapon = secondary
+			print("[Player] ✅ SECONDARY: %s (Damage: %d, Ammo: %d)" % [
+				secondary.weapon_name,
+				secondary.damage,
+				secondary.max_ammo
+			])
+		else:
+			push_warning("[Player] Failed to load SECONDARY weapon: %s" % secondary_weapon_name)
+
+	# Load SPECIAL weapon (optional)
+	if not special_weapon_name.is_empty():
+		var special = WeaponDatabase.get_special_weapon(special_weapon_name)
+		if special:
+			# Apply pilot modifiers to SPECIAL weapon
+			_apply_pilot_weapon_modifiers(special, WeaponData.Category.SPECIAL)
+
+			weapon_manager.special_weapon = special
+			print("[Player] ✅ SPECIAL: %s (Damage: %d, Ammo: %d)" % [
+				special.weapon_name,
+				special.damage,
+				special.max_ammo
+			])
+		else:
+			push_warning("[Player] Failed to load SPECIAL weapon: %s" % special_weapon_name)
+
+	print("╚════════════════════════════════════════════════════╝")
+
+## Apply pilot modifiers to weapon based on category
+## Multiplies damage, fire rate, and ammo by pilot bonuses
+func _apply_pilot_weapon_modifiers(weapon: WeaponData, category: int) -> void:
+	if not pilot_data:
+		return
+
+	# Get total damage modifier for this category (global * category-specific)
+	var damage_mod = pilot_data.get_damage_modifier_for_category(category)
+	var fire_rate_mod = pilot_data.get_fire_rate_modifier_for_category(category)
+
+	# Apply damage modifier
+	var original_damage = weapon.damage
+	weapon.damage = int(weapon.damage * damage_mod)
+
+	# Apply fire rate modifier
+	var original_fire_rate = weapon.fire_rate
+	weapon.fire_rate = weapon.fire_rate / fire_rate_mod  # Lower cooldown = faster fire rate
+
+	# Apply ammo modifiers (category-specific)
+	match category:
+		WeaponData.Category.SECONDARY:
+			var original_ammo = weapon.max_ammo
+			weapon.max_ammo = int(weapon.max_ammo * pilot_data.secondary_ammo_modifier)
+			if weapon.max_ammo != original_ammo:
+				print("[Player]   Ammo: %d -> %d" % [original_ammo, weapon.max_ammo])
+
+		WeaponData.Category.SPECIAL:
+			# SPECIAL ammo uses additive bonus
+			if pilot_data.special_ammo_bonus != 0:
+				var original_ammo = weapon.max_ammo
+				weapon.max_ammo += pilot_data.special_ammo_bonus
+				print("[Player]   Ammo: %d -> %d (%+d)" % [original_ammo, weapon.max_ammo, pilot_data.special_ammo_bonus])
+
+	# Log modifications if changed
+	if damage_mod != 1.0:
+		print("[Player]   Damage: %d -> %d (%.0f%%)" % [original_damage, weapon.damage, damage_mod * 100])
+
+	if fire_rate_mod != 1.0:
+		print("[Player]   Fire Rate: %.2f -> %.2f (%.0f%%)" % [original_fire_rate, weapon.fire_rate, fire_rate_mod * 100])
+#endregion

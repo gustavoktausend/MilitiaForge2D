@@ -20,7 +20,7 @@ const DARK_BG: Color = Color(0.05, 0.0, 0.1, 0.9)  # Almost black purple
 #endregion
 
 #region Node References
-var health_bar: ProgressBar
+var health_bar: AmmoSegmentedBar  # Changed to segmented bar (Megaman X style)
 var health_value_label: Label
 var score_label: Label
 var score_shadow: Label  # Chromatic aberration effect
@@ -29,6 +29,7 @@ var combo_label: Label
 var high_score_label: Label
 var left_panel: Panel
 var right_panel: Panel
+var weapons_hud: WeaponsHUD  # NEW: Weapon loadout display
 var game_over_overlay: ColorRect
 var restart_button: Button
 var menu_button: Button
@@ -96,7 +97,7 @@ func _create_hud_elements() -> void:
 	left_panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(left_panel)
 
-	# RIGHT PANEL - Mirror style
+	# RIGHT PANEL - Mirror style (for weapons)
 	right_panel = Panel.new()
 	right_panel.custom_minimum_size = Vector2(SIDE_PANEL_WIDTH, viewport_size.y)
 	right_panel.position = Vector2(viewport_size.x - SIDE_PANEL_WIDTH, 0)
@@ -104,6 +105,9 @@ func _create_hud_elements() -> void:
 	right_style.border_color = NEON_PINK
 	right_panel.add_theme_stylebox_override("panel", right_style)
 	add_child(right_panel)
+
+	# RIGHT PANEL CONTENT - Weapons HUD
+	_create_right_panel_content()
 
 	# LEFT PANEL CONTENT
 	var left_margin = MarginContainer.new()
@@ -192,7 +196,7 @@ func _create_hud_elements() -> void:
 	var sep3 = _create_neon_separator(NEON_PINK)
 	info_vbox.add_child(sep3)
 
-	# HEALTH SECTION - Neon bar with glow
+	# HEALTH SECTION - Megaman X style segmented bars!
 	var health_container = VBoxContainer.new()
 	health_container.add_theme_constant_override("separation", 15)
 	info_vbox.add_child(health_container)
@@ -203,36 +207,25 @@ func _create_hud_elements() -> void:
 	health_title.add_theme_color_override("font_color", NEON_GREEN)
 	health_container.add_child(health_title)
 
-	health_bar = ProgressBar.new()
-	health_bar.min_value = 0
-	health_bar.max_value = 100
-	health_bar.value = 100
-	health_bar.custom_minimum_size = Vector2(0, 40)
-	health_bar.show_percentage = false
-
-	# Neon green fill with glow
-	var fill_style = StyleBoxFlat.new()
-	fill_style.bg_color = NEON_GREEN
-	fill_style.set_border_width_all(3)
-	fill_style.border_color = Color(NEON_GREEN, 2.0)  # Bright border
-	fill_style.set_expand_margin_all(3)  # Glow effect
-	health_bar.add_theme_stylebox_override("fill", fill_style)
-
-	var bg_style = StyleBoxFlat.new()
-	bg_style.bg_color = Color(0.1, 0.0, 0.05)
-	bg_style.set_border_width_all(3)
-	bg_style.border_color = NEON_PINK
-	health_bar.add_theme_stylebox_override("background", bg_style)
-
+	# Segmented health bar (Megaman X style)
+	health_bar = AmmoSegmentedBar.new()
+	health_bar.max_ammo = 100  # Will be set to player's max health
+	health_bar.current_ammo = 100
+	health_bar.is_infinite = false
+	health_bar.fill_bottom_to_top = true
+	health_bar.animate_changes = true
+	health_bar.pulse_when_low = true
+	health_bar.low_ammo_threshold = 0.25  # Pulse below 25% health
+	health_bar.custom_minimum_size = Vector2(0, 80)  # Taller for better visibility
 	health_container.add_child(health_bar)
 
-	# Health value label (centered on bar)
+	# Health value label (shows HP numerically)
 	health_value_label = Label.new()
-	health_value_label.text = "100"
-	health_value_label.add_theme_font_size_override("font_size", 24)
-	health_value_label.add_theme_color_override("font_color", Color.BLACK)
-	health_value_label.add_theme_color_override("font_outline_color", NEON_GREEN)
-	health_value_label.add_theme_constant_override("outline_size", 8)
+	health_value_label.text = "100 / 100 HP"
+	health_value_label.add_theme_font_size_override("font_size", 20)
+	health_value_label.add_theme_color_override("font_color", NEON_GREEN)
+	health_value_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	health_value_label.add_theme_constant_override("outline_size", 6)
 	health_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	health_container.add_child(health_value_label)
 
@@ -463,6 +456,24 @@ func _on_player_ready(player_node: Node2D) -> void:
 	player = player_node
 	_connect_to_player()
 
+func _create_right_panel_content() -> void:
+	# Margin container for weapons
+	var right_margin = MarginContainer.new()
+	right_margin.anchor_right = 1.0
+	right_margin.anchor_bottom = 1.0
+	right_margin.add_theme_constant_override("margin_left", 20)
+	right_margin.add_theme_constant_override("margin_top", 40)
+	right_margin.add_theme_constant_override("margin_right", 20)
+	right_margin.add_theme_constant_override("margin_bottom", 40)
+	right_panel.add_child(right_margin)
+
+	# Weapons HUD
+	weapons_hud = WeaponsHUD.new()
+	weapons_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_margin.add_child(weapons_hud)
+
+	print("[HUD] Weapons HUD created in RIGHT PANEL")
+
 func _connect_to_player() -> void:
 	print("[HUD] _connect_to_player called - Player is ready!")
 	if not player:
@@ -484,7 +495,11 @@ func _connect_to_player() -> void:
 		health.damage_taken.connect(_on_damage_taken)
 		print("[HUD] ✅ Connected to damage_taken signal")
 
-		# Initialize health bar with current value
+		# Initialize health bar with current and max values
+		if health_bar:
+			health_bar.max_ammo = health.max_health
+			health_bar.current_ammo = health.current_health
+
 		_on_health_changed(health.current_health, health.current_health)
 	else:
 		push_error("[HUD] ❌ HealthComponent not found on PlayerHost!")
@@ -496,6 +511,11 @@ func _connect_to_player() -> void:
 		print("[HUD] ✅ Connected to ScoreComponent")
 	else:
 		print("[HUD] ⚠️ ScoreComponent not found (this is optional)")
+
+	# Connect WeaponsHUD to player
+	if weapons_hud:
+		weapons_hud.set_player(player)
+		print("[HUD] ✅ Connected WeaponsHUD to player")
 
 func _connect_to_wave_manager() -> void:
 	if not wave_manager:
@@ -536,48 +556,49 @@ func _on_player_score_changed(new_score: int, _old: int) -> void:
 func _on_health_changed(new_health: int, old_health: int) -> void:
 	print("[HUD] _on_health_changed called! New: %d, Old: %d" % [new_health, old_health])
 	if health_bar:
-		print("[HUD] Updating health bar to %d (max: %d)" % [new_health, health_bar.max_value])
-		# Smooth animation
-		var tween = create_tween()
-		tween.tween_property(health_bar, "value", new_health, 0.3)
+		var max_health = health_bar.max_ammo
+		print("[HUD] Updating health bar to %d (max: %d)" % [new_health, max_health])
 
-		# Update text
-		health_value_label.text = "%d" % new_health
+		# Update segmented bar (with smooth animation)
+		health_bar.current_ammo = new_health
 
-		# Color shift based on health
-		var fill: StyleBoxFlat = health_bar.get_theme_stylebox("fill")
-		if new_health < 25:
-			fill.bg_color = NEON_PINK
-			fill.border_color = Color(NEON_PINK, 2.0)
-			health_value_label.add_theme_color_override("font_outline_color", NEON_PINK)
-			# Critical health pulse
-			_start_critical_health_pulse()
-		elif new_health < 50:
-			fill.bg_color = NEON_ORANGE
-			fill.border_color = Color(NEON_ORANGE, 2.0)
-			health_value_label.add_theme_color_override("font_outline_color", NEON_ORANGE)
+		# Update text with max health
+		health_value_label.text = "%d / %d HP" % [new_health, max_health]
+
+		# Color shift based on health percentage
+		var health_percentage = float(new_health) / float(max_health)
+
+		if health_percentage < 0.25:
+			# Critical (below 25%) - Pink
+			health_value_label.add_theme_color_override("font_color", NEON_PINK)
+			# Pulse animation handled by AmmoSegmentedBar automatically
+		elif health_percentage < 0.5:
+			# Low (below 50%) - Orange
+			health_value_label.add_theme_color_override("font_color", NEON_ORANGE)
 		else:
-			fill.bg_color = NEON_GREEN
-			fill.border_color = Color(NEON_GREEN, 2.0)
-			health_value_label.add_theme_color_override("font_outline_color", NEON_GREEN)
+			# Healthy (above 50%) - Green
+			health_value_label.add_theme_color_override("font_color", NEON_GREEN)
 	else:
 		print("[HUD] WARNING: health_bar is null!")
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	# Red screen flash
 	_flash_screen(Color(NEON_PINK.r, 0, 0, 0.3), 0.15)
+
+	# Flash health bar (Megaman X style)
+	if health_bar:
+		health_bar.flash(NEON_PINK, 0.2)
+
 	# Shake health bar
 	_shake_health_bar()
+
 	# Screen shake
 	_screen_shake(5.0, 0.2)
 
 func _start_critical_health_pulse() -> void:
-	if health_shake_tween:
-		health_shake_tween.kill()
-
-	health_shake_tween = create_tween().set_loops()
-	health_shake_tween.tween_property(health_bar, "modulate", Color(NEON_PINK, 1.5), 0.3)
-	health_shake_tween.tween_property(health_bar, "modulate", Color.WHITE, 0.3)
+	# AmmoSegmentedBar now handles pulse automatically when health is low
+	# This function kept for compatibility but not needed anymore
+	pass
 
 func _shake_health_bar() -> void:
 	var original_pos = health_bar.position
