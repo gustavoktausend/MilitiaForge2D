@@ -37,6 +37,9 @@ signal milestone_reached(milestone: int, reward: Variant)
 
 ## Emitted when rank changes
 signal rank_changed(new_rank: String, new_grade: int)
+
+## Emitted when an enemy is killed
+signal enemy_killed(enemy: Node2D, points: int)
 #endregion
 
 #region Enums
@@ -222,6 +225,27 @@ func reset_score() -> void:
 	if enable_ranks:
 		current_rank = Rank.F
 		rank_changed.emit(Rank.keys()[current_rank], current_rank)
+
+## Register an enemy kill
+##
+## Adds score, increments combo, and emits enemy_killed signal.
+## This is the main method to call when an enemy is defeated.
+##
+## @param enemy: The enemy entity that was killed
+## @param points: Score points to award
+func register_enemy_kill(enemy: Node2D, points: int) -> void:
+	# Add score
+	add_score(points)
+	
+	# Increment combo
+	if enable_combos:
+		increment_combo()
+	
+	# Emit signal for other systems to react
+	enemy_killed.emit(enemy, points)
+	
+	if debug_score:
+		print("[ScoreComponent] Enemy killed! Points: %d, Combo: %d" % [points, current_combo])
 #endregion
 
 #region Public Methods - Combo

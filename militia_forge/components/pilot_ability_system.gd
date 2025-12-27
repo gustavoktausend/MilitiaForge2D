@@ -42,15 +42,17 @@ var _invincibility_trigger_used: bool = false
 #endregion
 
 #region Component Lifecycle
-func component_initialize() -> void:
+func initialize(host_node: ComponentHost) -> void:
+	super.initialize(host_node)
+	
 	if not pilot_data:
 		push_error("[PilotAbilitySystem] No pilot data set!")
 		return
 
 	# Get component references
-	health_component = component_host.get_component("HealthComponent")
-	score_component = component_host.get_component("ScoreComponent")
-	weapon_manager = component_host.get_component("WeaponSlotManager")
+	health_component = get_sibling_component("HealthComponent")
+	score_component = get_sibling_component("ScoreComponent")
+	weapon_manager = get_sibling_component("WeaponSlotManager")
 
 	if debug_abilities:
 		print("╔════════════════════════════════════════════════════════╗")
