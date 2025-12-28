@@ -45,6 +45,9 @@ enum AbilityType {
 ## Pilot portrait/avatar
 @export var portrait: Texture2D
 
+## Pilot license card image
+@export var license_card: Texture2D
+
 ## Difficulty rating (1-5 stars)
 @export var difficulty: Difficulty = Difficulty.MEDIUM
 

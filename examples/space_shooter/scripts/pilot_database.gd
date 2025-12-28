@@ -73,10 +73,13 @@ static func create_ace_gunner() -> PilotData:
 	var pilot = PilotData.new()
 
 	# Identity
-	pilot.pilot_name = "Ace Gunner"
+	pilot.pilot_name = "I.N.D.I.O"
 	pilot.description = "\"Every shot counts, every target falls.\"\n\nA precision shooter who has mastered the art of PRIMARY weapons. Sacrifices durability for devastating firepower."
 	pilot.difficulty = PilotData.Difficulty.MEDIUM
 	pilot.archetype = "DPS"
+
+	# License card
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/indio_pilot.png")
 
 	# Base stats
 	pilot.health_modifier = 0.90  # -10% health

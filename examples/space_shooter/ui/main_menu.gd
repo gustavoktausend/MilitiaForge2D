@@ -15,7 +15,7 @@ var background: ColorRect
 #endregion
 
 #region Constants
-const SHIP_SELECTION_PATH = "res://examples/space_shooter/scenes/ship_selection.tscn"
+const LOADOUT_SELECTION_PATH = "res://examples/space_shooter/scenes/loadout_selection.tscn"
 #endregion
 
 func _ready() -> void:
@@ -217,10 +217,10 @@ func _load_high_score() -> void:
 		print("[MainMenu] No high score file found")
 
 func _on_play_pressed() -> void:
-	print("[MainMenu] PLAY pressed - Loading ship selection...")
+	print("[MainMenu] PLAY pressed - Loading loadout selection...")
 
-	# Go to ship selection first
-	get_tree().change_scene_to_file(SHIP_SELECTION_PATH)
+	# Go to unified loadout selection (pilot + ship + colors)
+	get_tree().change_scene_to_file(LOADOUT_SELECTION_PATH)
 
 func _on_options_pressed() -> void:
 	print("[MainMenu] OPTIONS pressed")

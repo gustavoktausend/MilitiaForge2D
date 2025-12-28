@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ShipConfig" load_steps=3 format=3 uid="uid://orbx5uyli1n3"]
 
 [ext_resource type="Script" uid="uid://dmwrxbl02mxae" path="res://examples/space_shooter/scripts/ship_config.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://c77r7ppt0ayu3" path="res://examples/space_shooter/assets/sprites/player/ship_interceptor.png" id="2_yueda"]
+[ext_resource type="Texture2D" uid="uid://cj452we0vq0di" path="res://examples/space_shooter/assets/sprites/player/ship_interceptor.png" id="2_yueda"]
 
 [resource]
 script = ExtResource("1")
