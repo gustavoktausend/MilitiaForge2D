@@ -70,6 +70,17 @@ Central hub for all MilitiaForge2D documentation.
 
 ---
 
+## 🎮 Examples
+
+- **[Space Shooter Guide](examples/SPACE_SHOOTER_GUIDE.md)** - Complete implementation guide ✅
+  - How Space Shooter uses framework components
+  - Player and enemy implementation
+  - Weapon system
+  - Design patterns applied
+  - Step-by-step guide to create your own game
+
+---
+
 ## 📚 Additional Resources
 
 - **[Changelog](../CHANGELOG.md)** - Version history and changes
@@ -87,8 +98,10 @@ docs/
 │   └── SOLID_PRINCIPLES.md           # SOLID principles
 ├── guidelines/
 │   └── COMPONENT_CREATION.md         # Component creation guide
-└── components/
-    └── component_foundation.md       # Component system docs
+├── components/
+│   └── component_foundation.md       # Component system docs
+└── examples/
+    └── SPACE_SHOOTER_GUIDE.md        # Space Shooter implementation guide
 ```
 
 ---
@@ -110,7 +123,10 @@ docs/
 → See [Component Foundation](components/component_foundation.md#-component-lifecycle)
 
 **...see examples**
-→ Explore `sandbox/test_scenes/` and `sandbox/test_components/`
+→ Explore `sandbox/test_scenes/` and `sandbox/test_components/`, or read the [Space Shooter Guide](examples/SPACE_SHOOTER_GUIDE.md)
+
+**...learn how to build a complete game**
+→ Read the [Space Shooter Guide](examples/SPACE_SHOOTER_GUIDE.md) for a comprehensive example
 
 **...know what changed**
 → Read [Changelog](../CHANGELOG.md)
@@ -129,4 +145,4 @@ When adding new components or features:
 
 ---
 
-*Last updated: 2024-12-13*
+*Last updated: 2024-12-28*
