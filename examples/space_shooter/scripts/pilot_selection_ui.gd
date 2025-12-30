@@ -6,6 +6,7 @@ extends Control
 
 signal pilot_selected(pilot)
 
+@onready var portrait_rect: TextureRect = $VBoxContainer/PortraitRect
 @onready var pilot_name_label: Label = $VBoxContainer/PilotName
 @onready var archetype_label: Label = $VBoxContainer/Archetype
 @onready var difficulty_label: Label = $VBoxContainer/Difficulty
@@ -51,6 +52,46 @@ func _update_display() -> void:
 
 	var pilot = available_pilots[current_index]
 
+	# Animate portrait fade
+	_animate_portrait_change(pilot)
+
+	# Update pilot info with fade
+	_animate_info_fade(pilot)
+
+	# Update button states
+	prev_button.disabled = current_index == 0
+	next_button.disabled = current_index == available_pilots.size() - 1
+
+func _animate_portrait_change(pilot: PilotData) -> void:
+	# Fade out current portrait
+	var fade_out = create_tween()
+	fade_out.tween_property(portrait_rect, "modulate:a", 0.0, 0.15)
+	await fade_out.finished
+
+	# Update portrait texture
+	if pilot.portrait:
+		portrait_rect.texture = pilot.portrait
+	else:
+		# Fallback to license_card if portrait not available
+		if pilot.license_card:
+			portrait_rect.texture = pilot.license_card
+		else:
+			portrait_rect.texture = null
+
+	# Fade in new portrait
+	var fade_in = create_tween()
+	fade_in.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
+
+func _animate_info_fade(pilot: PilotData) -> void:
+	# Create quick fade effect for info
+	var info_nodes = [pilot_name_label, archetype_label, difficulty_label, description_label, bonuses_container]
+
+	# Fade out all info
+	var fade_out = create_tween().set_parallel(true)
+	for node in info_nodes:
+		fade_out.tween_property(node, "modulate:a", 0.5, 0.1)
+	await fade_out.finished
+
 	# Update pilot info
 	pilot_name_label.text = pilot.pilot_name
 	archetype_label.text = "[ %s ]" % pilot.archetype
@@ -68,9 +109,10 @@ func _update_display() -> void:
 	# Update ability
 	_update_ability(pilot)
 
-	# Update button states
-	prev_button.disabled = current_index == 0
-	next_button.disabled = current_index == available_pilots.size() - 1
+	# Fade in all info
+	var fade_in = create_tween().set_parallel(true)
+	for node in info_nodes:
+		fade_in.tween_property(node, "modulate:a", 1.0, 0.15)
 
 func _update_bonuses(pilot) -> void:
 	# Clear existing bonuses

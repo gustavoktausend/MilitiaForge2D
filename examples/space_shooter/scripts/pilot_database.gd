@@ -78,7 +78,8 @@ static func create_ace_gunner() -> PilotData:
 	pilot.difficulty = PilotData.Difficulty.MEDIUM
 	pilot.archetype = "DPS"
 
-	# License card
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/indio_pilot.png")
 	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/indio_pilot.png")
 
 	# Base stats
@@ -117,6 +118,10 @@ static func create_tank_commander() -> PilotData:
 	pilot.difficulty = PilotData.Difficulty.EASY
 	pilot.archetype = "Tank"
 
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/tank_commander_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/tank_commander_pilot.png")
+
 	# Base stats - tanky!
 	pilot.health_modifier = 1.30  # +30% health
 	pilot.speed_modifier = 0.85   # -15% speed
@@ -154,6 +159,10 @@ static func create_speed_demon() -> PilotData:
 	pilot.difficulty = PilotData.Difficulty.HARD
 	pilot.archetype = "Speed"
 
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/speed_demon_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/speed_demon_pilot.png")
+
 	# Base stats - fast and fragile
 	pilot.health_modifier = 1.0
 	pilot.speed_modifier = 1.40      # +40% speed
@@ -188,6 +197,10 @@ static func create_engineer() -> PilotData:
 	pilot.description = "\"Precision engineering meets explosive results.\"\n\nExpert in SPECIAL weapons and explosives. Starts with extra ammo and enhanced blast radius."
 	pilot.difficulty = PilotData.Difficulty.HARD
 	pilot.archetype = "Support"
+
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/engineer_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/engineer_pilot.png")
 
 	# Base stats - normal
 	pilot.health_modifier = 1.0
@@ -228,6 +241,10 @@ static func create_dual_wielder() -> PilotData:
 	pilot.difficulty = PilotData.Difficulty.EXPERT
 	pilot.archetype = "DPS"
 
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/dual_wielder_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/dual_wielder_pilot.png")
+
 	# Base stats
 	pilot.health_modifier = 1.0
 	pilot.speed_modifier = 0.95  # -5% speed (dual guns are heavy)
@@ -263,6 +280,10 @@ static func create_combo_master() -> PilotData:
 	pilot.description = "\"Every kill feeds the next.\"\n\nThrives on consecutive kills. Combo decays slower and builds faster, with scaling damage bonuses."
 	pilot.difficulty = PilotData.Difficulty.EXPERT
 	pilot.archetype = "DPS"
+
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/combo_master_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/combo_master_pilot.png")
 
 	# Base stats - normal
 	pilot.health_modifier = 1.0
@@ -302,6 +323,10 @@ static func create_scavenger() -> PilotData:
 	pilot.difficulty = PilotData.Difficulty.MEDIUM
 	pilot.archetype = "Support"
 
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/scavenger_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/scavenger_pilot.png")
+
 	# Base stats - normal
 	pilot.health_modifier = 1.0
 	pilot.speed_modifier = 1.05  # +5% speed (to collect drops)
@@ -340,6 +365,10 @@ static func create_berserker() -> PilotData:
 	pilot.description = "\"Pain is power. Death is weakness.\"\n\nGrows stronger as health decreases. Gains massive damage at low HP but starts with reduced health. For masters only."
 	pilot.difficulty = PilotData.Difficulty.MASTER
 	pilot.archetype = "DPS"
+
+	# Portrait and License card
+	pilot.portrait = load("res://examples/space_shooter/assets/sprites/pilot_licenses/berserker_pilot.png")
+	pilot.license_card = load("res://examples/space_shooter/assets/sprites/pilot_licenses/berserker_pilot.png")
 
 	# Base stats - risky
 	pilot.health_modifier = 0.85  # -15% max health (risky!)

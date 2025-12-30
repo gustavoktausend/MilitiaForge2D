@@ -21,7 +21,6 @@ config/icon="res://icon.svg"
 
 PlayerData="*res://examples/space_shooter/scripts/player_data.gd"
 EntityPoolManager="*res://examples/space_shooter/scripts/entity_pool_manager.gd"
-SceneTransition="*res://addons/scene_transition/scene_transition.gd"
 
 [display]
 

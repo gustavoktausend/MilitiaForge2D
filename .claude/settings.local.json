@@ -18,7 +18,10 @@
       "Bash(Select-String \"EntityPoolManager\" -Context 0,2)",
       "Bash(timeout 10 godot:*)",
       "Bash(timeout 15 godot:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

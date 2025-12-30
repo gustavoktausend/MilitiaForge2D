@@ -146,8 +146,10 @@ func _update_pilot_display() -> void:
 
 	var pilot = available_pilots[current_pilot_index]
 
-	# Update license card image
-	if pilot.license_card:
+	# Update portrait/license card image (with fallback)
+	if pilot.portrait:
+		license_card.texture = pilot.portrait
+	elif pilot.license_card:
 		license_card.texture = pilot.license_card
 	else:
 		license_card.texture = null
