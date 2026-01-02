@@ -145,6 +145,9 @@ func _on_hitbox_hit(target: Node, damage_dealt: int) -> void:
 
 	print("[Projectile] Hit target %s for %d damage! Destroying projectile..." % [target.name, damage_dealt])
 
+	# Spawn impact particles at hit location
+	_spawn_impact_particles()
+
 	# Disable hitbox immediately to prevent further collisions
 	# but keep it alive long enough for Hurtbox to process the damage
 	if hitbox and is_instance_valid(hitbox):
@@ -221,3 +224,34 @@ func _destroy_or_pool() -> void:
 	else:
 		# Traditional destruction
 		queue_free()
+
+func _spawn_impact_particles() -> void:
+	# Load impact particles script
+	var ImpactParticles = load("res://examples/space_shooter/effects/impact_particles.gd")
+	if not ImpactParticles:
+		return
+
+	# Create instance
+	var impact = GPUParticles2D.new()
+	impact.set_script(ImpactParticles)
+
+	# Set color based on projectile type
+	var impact_color: Color
+	if is_player_projectile:
+		impact_color = Color(1.0, 0.94, 0.0) # NEON_YELLOW for player
+	else:
+		impact_color = Color(1.0, 0.08, 0.58) # NEON_PINK for enemy
+
+	# Position at impact location
+	impact.global_position = global_position
+
+	# Add to game world (not as child of projectile since projectile is being destroyed)
+	get_tree().root.add_child(impact)
+
+	# Configure impact
+	impact.set("impact_color", impact_color)
+	impact.set("impact_size", 30.0)
+
+	# Play audio if AudioManager exists
+	if AudioManager and AudioManager.has_method("play_sfx"):
+		AudioManager.play_sfx("impact", 0.3)

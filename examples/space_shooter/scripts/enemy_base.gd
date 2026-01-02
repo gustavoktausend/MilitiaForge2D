@@ -465,8 +465,9 @@ func _on_enemy_died() -> void:
 
 	print("%s DIED! Emitting enemy_died signal and destroying..." % _get_log_prefix())
 
-	# Visual feedback for death
-	# particles.play_effect() - Would trigger particle effect if configured
+	# Visual feedback for death - spawn explosion particles
+	_spawn_explosion_particles()
+
 	enemy_died.emit(self, score_value)
 
 	# Chance to drop power-up
@@ -513,3 +514,40 @@ func _get_log_prefix() -> String:
 func _spawn_powerup() -> void:
 	# This will be implemented when we create the powerup system
 	print("%s Should spawn powerup at: %v" % [_get_log_prefix(), global_position])
+
+func _spawn_explosion_particles() -> void:
+	# Load explosion particles script
+	var ExplosionParticles = load("res://examples/space_shooter/effects/explosion_particles.gd")
+	if not ExplosionParticles:
+		return
+
+	# Create instance
+	var explosion = GPUParticles2D.new()
+	explosion.set_script(ExplosionParticles)
+
+	# Set color based on enemy type
+	var explosion_color: Color
+	match enemy_type:
+		"Tank":
+			explosion_color = Color(0.58, 0.0, 0.83) # NEON_PURPLE for tank
+		"Fast":
+			explosion_color = Color(1.0, 0.94, 0.0) # NEON_YELLOW for fast
+		_:
+			explosion_color = Color(1.0, 0.08, 0.58) # NEON_PINK for basic
+
+	# Set size based on enemy type
+	var explosion_size: float = 100.0 if enemy_type != "Tank" else 150.0
+
+	# Position at enemy death location
+	explosion.global_position = physics_body.global_position if physics_body else global_position
+
+	# Add to game world (not as child of enemy since enemy is being destroyed)
+	get_tree().root.add_child(explosion)
+
+	# Configure explosion
+	explosion.set("explosion_color", explosion_color)
+	explosion.set("explosion_radius", explosion_size)
+
+	# Play audio if AudioManager exists
+	if AudioManager and AudioManager.has_method("play_sfx"):
+		AudioManager.play_sfx("explosion", 0.6)

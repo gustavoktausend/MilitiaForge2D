@@ -357,6 +357,9 @@ func _setup_visuals() -> void:
 
 		sprite.z_index = 1
 		physics_body.add_child(sprite)
+
+		# Add engine trail effect
+		_add_engine_trail()
 		var sprite_source = "ShipConfig" if ship_config else "default"
 		print("[Player] Loaded sprite from %s (scale: %.2f)" % [sprite_source, scale_factor])
 	else:
@@ -657,4 +660,46 @@ func _apply_pilot_weapon_modifiers(weapon: WeaponData, category: int) -> void:
 
 	if fire_rate_mod != 1.0:
 		print("[Player]   Fire Rate: %.2f -> %.2f (%.0f%%)" % [original_fire_rate, weapon.fire_rate, fire_rate_mod * 100])
+
+func _add_engine_trail() -> void:
+	if not physics_body:
+		return
+
+	# Load engine trail script
+	var EngineTrail = load("res://examples/space_shooter/effects/engine_trail.gd")
+	if not EngineTrail:
+		return
+
+	# Create trail instance
+	var trail = GPUParticles2D.new()
+	trail.set_script(EngineTrail)
+	trail.name = "EngineTrail"
+
+	# Position at back of ship (offset down)
+	trail.position = Vector2(0, 36) # Offset below center
+
+	# Add to physics body so it moves with ship
+	physics_body.add_child(trail)
+
+	# Configure trail colors based on ship config or pilot
+	var trail_color_start = Color(0.0, 0.94, 0.94) # NEON_CYAN
+	var trail_color_end = Color(0.2, 0.6, 1.0) # NEON_BLUE
+
+	# Customize based on pilot if available
+	if pilot_data:
+		match pilot_data.pilot_name:
+			"Ace":
+				trail_color_start = Color(1.0, 0.94, 0.0) # Yellow for speed
+				trail_color_end = Color(1.0, 0.5, 0.0) # Orange
+			"Tank":
+				trail_color_start = Color(1.0, 0.08, 0.58) # Pink
+				trail_color_end = Color(0.58, 0.0, 0.83) # Purple
+			"Gunner":
+				trail_color_start = Color(1.0, 0.3, 0.0) # Red-orange
+				trail_color_end = Color(1.0, 0.0, 0.0) # Red
+
+	trail.set("trail_color_start", trail_color_start)
+	trail.set("trail_color_end", trail_color_end)
+
+	print("[Player] Engine trail added with colors: %v -> %v" % [trail_color_start, trail_color_end])
 #endregion
