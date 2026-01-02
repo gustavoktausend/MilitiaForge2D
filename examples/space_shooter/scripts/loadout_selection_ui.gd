@@ -345,16 +345,21 @@ func _on_next_ship() -> void:
 		_save_to_player_data()
 
 func _on_start_pressed() -> void:
+	AudioManager.play_ui_sound("start_game", 1.2)
 	_save_to_player_data()
 	print("[LoadoutSelection] Starting game with pilot: %s, ship: %s" %
 		[available_pilots[current_pilot_index].pilot_name,
 		 available_ships[current_ship_index].ship_name])
 
-	# Fade out music before transitioning
-	_fade_out_music()
-	await get_tree().create_timer(0.5).timeout
+	# Fade out music before transitioning (using AudioManager)
+	await AudioManager.fade_out_music(0.8)
 
-	get_tree().change_scene_to_file("res://examples/space_shooter/scenes/main_game.tscn")
+	# Transition to main game with squares effect (pixel blocks)
+	var fade_out_options = SceneManager.create_options(0.6, "squares")  # 0.6s squares out
+	var fade_in_options = SceneManager.create_options(0.4, "squares")   # 0.4s squares in
+	var general_options = SceneManager.create_general_options()
+
+	SceneManager.change_scene("main_game", fade_out_options, fade_in_options, general_options)
 #endregion
 
 #region Save/Load

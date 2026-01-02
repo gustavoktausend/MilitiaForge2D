@@ -16,6 +16,7 @@ signal health_changed(current_health: int, max_health: int)
 @onready var player: Node2D = null
 @onready var wave_manager: Node2D = null
 @onready var hud: Control = null
+@onready var pause_menu: CanvasLayer = null
 #endregion
 
 #region Game State
@@ -38,13 +39,11 @@ func _ready() -> void:
 	# Load high score from save file
 	_load_high_score()
 
+	# Setup pause menu
+	_setup_pause_menu()
+
 	# Start game automatically for now
 	call_deferred("start_game")
-
-func _process(_delta: float) -> void:
-	# Handle pause
-	if Input.is_action_just_pressed("ui_cancel") and current_state == GameState.PLAYING:
-		toggle_pause()
 
 func start_game() -> void:
 	print("[GameController] Starting game...")
@@ -114,6 +113,24 @@ func _setup_hud() -> void:
 	# HUD will be setup when we create the UI
 	pass
 
+func _setup_pause_menu() -> void:
+	# Create pause menu
+	var PauseMenu = load("res://examples/space_shooter/ui/pause_menu.gd")
+	pause_menu = CanvasLayer.new()
+	pause_menu.set_script(PauseMenu)
+	pause_menu.name = "PauseMenu"
+	get_tree().root.add_child(pause_menu)
+
+	# Connect signals
+	if pause_menu.has_signal("resume_requested"):
+		pause_menu.resume_requested.connect(_on_pause_resume)
+	if pause_menu.has_signal("restart_requested"):
+		pause_menu.restart_requested.connect(_on_pause_restart)
+	if pause_menu.has_signal("quit_to_menu_requested"):
+		pause_menu.quit_to_menu_requested.connect(_on_pause_quit)
+
+	print("[GameController] ✅ Pause menu created and connected")
+
 func add_score(points: int) -> void:
 	current_score += points
 	score_changed.emit(current_score)
@@ -146,11 +163,17 @@ func end_game() -> void:
 func toggle_pause() -> void:
 	if current_state == GameState.PLAYING:
 		current_state = GameState.PAUSED
-		get_tree().paused = true
+		if pause_menu:
+			pause_menu.show_pause_menu()
+		else:
+			get_tree().paused = true
 		print("[GameController] Game Paused")
 	elif current_state == GameState.PAUSED:
 		current_state = GameState.PLAYING
-		get_tree().paused = false
+		if pause_menu:
+			pause_menu.hide_pause_menu()
+		else:
+			get_tree().paused = false
 		print("[GameController] Game Resumed")
 
 func restart_game() -> void:
@@ -209,3 +232,22 @@ func get_current_score() -> int:
 
 func get_high_score() -> int:
 	return high_score
+
+#region Pause Menu Signal Handlers
+func _on_pause_resume() -> void:
+	print("[GameController] Resume requested from pause menu")
+	current_state = GameState.PLAYING
+
+func _on_pause_restart() -> void:
+	print("[GameController] Restart requested from pause menu")
+	restart_game()
+
+func _on_pause_quit() -> void:
+	print("[GameController] Quit to menu requested from pause menu")
+	get_tree().paused = false
+	# Use SceneManager to transition to main menu with effect
+	var fade_out_options = SceneManager.create_options(0.5, "squares")
+	var fade_in_options = SceneManager.create_options(0.3, "squares")
+	var general_options = SceneManager.create_general_options()
+	SceneManager.change_scene("main_menu", fade_out_options, fade_in_options, general_options)
+#endregion

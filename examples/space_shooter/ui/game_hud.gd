@@ -2,8 +2,17 @@
 ##
 ## Ultra-stylish HUD with neon colors, chromatic aberration, glitch effects,
 ## pulsing animations, and screen shake. Maximum visual impact!
+##
+## REFACTORED: Now uses component-based architecture for better maintainability.
 
 extends CanvasLayer
+
+#region Component Scripts
+const ScoreDisplay = preload("res://examples/space_shooter/ui/components/score_display.gd")
+const ComboDisplay = preload("res://examples/space_shooter/ui/components/combo_display.gd")
+const HealthDisplay = preload("res://examples/space_shooter/ui/components/health_display.gd")
+const WaveDisplay = preload("res://examples/space_shooter/ui/components/wave_display.gd")
+#endregion
 
 #region Constants
 const PLAY_AREA_WIDTH: float = 960.0
@@ -19,30 +28,21 @@ const NEON_GREEN: Color = Color(0.0, 1.0, 0.5)  # Toxic green
 const DARK_BG: Color = Color(0.05, 0.0, 0.1, 0.9)  # Almost black purple
 #endregion
 
-#region Node References
-var health_bar: AmmoSegmentedBar  # Changed to segmented bar (Megaman X style)
-var health_value_label: Label
-var score_label: Label
-var score_shadow: Label  # Chromatic aberration effect
-var wave_label: Label
-var combo_label: Label
-var high_score_label: Label
+#region Component References
+var score_display: Node  # ScoreDisplay component
+var combo_display: Node  # ComboDisplay component
+var health_display: Node  # HealthDisplay component
+var wave_display: Node   # WaveDisplay component
+var weapons_hud: WeaponsHUD
+#endregion
+
+#region Panel References
 var left_panel: Panel
 var right_panel: Panel
-var weapons_hud: WeaponsHUD  # NEW: Weapon loadout display
+var screen_flash: ColorRect
 var game_over_overlay: ColorRect
 var restart_button: Button
 var menu_button: Button
-var screen_flash: ColorRect  # For damage/kill flash effects
-#endregion
-
-#region Animation Variables
-var score_pulse_tween: Tween
-var health_shake_tween: Tween
-var combo_scale_tween: Tween
-var current_score: int = 0
-var target_score: int = 0
-var score_animation_speed: float = 500.0  # Points per second (fast for arcade feel)
 #endregion
 
 #region Private Variables
@@ -60,16 +60,7 @@ func _ready() -> void:
 	_create_hud_elements()
 	print("[HUD] HUD elements created, connecting to game...")
 	call_deferred("_connect_to_game")
-	_start_background_animations()
 	print("[HUD] HUD initialization complete!")
-
-func _process(delta: float) -> void:
-	# Smooth score counter animation
-	if current_score < target_score:
-		current_score += int(score_animation_speed * delta)
-		if current_score > target_score:
-			current_score = target_score
-		_update_score_display()
 
 func _create_screen_flash() -> void:
 	# Full-screen flash overlay for damage/kill effects
@@ -109,7 +100,16 @@ func _create_hud_elements() -> void:
 	# RIGHT PANEL CONTENT - Weapons HUD
 	_create_right_panel_content()
 
-	# LEFT PANEL CONTENT
+	# LEFT PANEL CONTENT - Using components
+	_create_left_panel_content()
+
+	# COMBO DISPLAY - Positioned in play area
+	_create_combo_display(viewport_size)
+
+	# GAME OVER OVERLAY
+	_create_game_over_overlay(viewport_size)
+
+func _create_left_panel_content() -> void:
 	var left_margin = MarginContainer.new()
 	left_margin.anchor_right = 1.0
 	left_margin.anchor_bottom = 1.0
@@ -136,122 +136,49 @@ func _create_hud_elements() -> void:
 	var sep1 = _create_neon_separator(NEON_CYAN)
 	info_vbox.add_child(sep1)
 
-	# SCORE SECTION - With chromatic aberration
-	var score_container = Control.new()
-	score_container.custom_minimum_size = Vector2(0, 150)
-	info_vbox.add_child(score_container)
+	# SCORE COMPONENT
+	score_display = ScoreDisplay.new()
+	info_vbox.add_child(score_display)
 
-	var score_title = Label.new()
-	score_title.text = "▼ SCORE ▼"
-	score_title.add_theme_font_size_override("font_size", 22)
-	score_title.add_theme_color_override("font_color", NEON_YELLOW)
-	score_title.position = Vector2(0, 0)
-	score_container.add_child(score_title)
+	# WAVE COMPONENT
+	wave_display = WaveDisplay.new()
+	info_vbox.add_child(wave_display)
 
-	# Score shadow (chromatic aberration - red offset)
-	score_shadow = Label.new()
-	score_shadow.text = "0"
-	score_shadow.add_theme_font_size_override("font_size", 56)
-	score_shadow.add_theme_color_override("font_color", Color(NEON_PINK.r, 0, 0, 0.5))
-	score_shadow.position = Vector2(-3, 43)  # Slight offset
-	score_container.add_child(score_shadow)
-
-	# Main score label (cyan on top)
-	score_label = Label.new()
-	score_label.text = "0"
-	score_label.add_theme_font_size_override("font_size", 56)
-	score_label.add_theme_color_override("font_color", NEON_CYAN)
-	score_label.position = Vector2(0, 40)
-	score_container.add_child(score_label)
-
-	high_score_label = Label.new()
-	high_score_label.text = "◆ HI: 0"
-	high_score_label.add_theme_font_size_override("font_size", 18)
-	high_score_label.add_theme_color_override("font_color", NEON_PURPLE)
-	high_score_label.position = Vector2(0, 110)
-	score_container.add_child(high_score_label)
-
-	var sep2 = _create_neon_separator(NEON_YELLOW)
-	info_vbox.add_child(sep2)
-
-	# WAVE SECTION
-	var wave_container = VBoxContainer.new()
-	wave_container.add_theme_constant_override("separation", 10)
-	info_vbox.add_child(wave_container)
-
-	var wave_title = Label.new()
-	wave_title.text = "▼ WAVE ▼"
-	wave_title.add_theme_font_size_override("font_size", 22)
-	wave_title.add_theme_color_override("font_color", NEON_YELLOW)
-	wave_container.add_child(wave_title)
-
-	wave_label = Label.new()
-	wave_label.text = "1 / 5"
-	wave_label.add_theme_font_size_override("font_size", 38)
-	wave_label.add_theme_color_override("font_color", NEON_PINK)
-	wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	wave_container.add_child(wave_label)
-	_add_glow_effect(wave_label, NEON_PINK)
-
-	var sep3 = _create_neon_separator(NEON_PINK)
-	info_vbox.add_child(sep3)
-
-	# HEALTH SECTION - Megaman X style segmented bars!
-	var health_container = VBoxContainer.new()
-	health_container.add_theme_constant_override("separation", 15)
-	info_vbox.add_child(health_container)
-
-	var health_title = Label.new()
-	health_title.text = "▼ HULL INTEGRITY ▼"
-	health_title.add_theme_font_size_override("font_size", 20)
-	health_title.add_theme_color_override("font_color", NEON_GREEN)
-	health_container.add_child(health_title)
-
-	# Segmented health bar (Megaman X style)
-	health_bar = AmmoSegmentedBar.new()
-	health_bar.max_ammo = 100  # Will be set to player's max health
-	health_bar.current_ammo = 100
-	health_bar.is_infinite = false
-	health_bar.fill_bottom_to_top = true
-	health_bar.animate_changes = true
-	health_bar.pulse_when_low = true
-	health_bar.low_ammo_threshold = 0.25  # Pulse below 25% health
-	health_bar.custom_minimum_size = Vector2(0, 80)  # Taller for better visibility
-	health_container.add_child(health_bar)
-
-	# Health value label (shows HP numerically)
-	health_value_label = Label.new()
-	health_value_label.text = "100 / 100 HP"
-	health_value_label.add_theme_font_size_override("font_size", 20)
-	health_value_label.add_theme_color_override("font_color", NEON_GREEN)
-	health_value_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	health_value_label.add_theme_constant_override("outline_size", 6)
-	health_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	health_container.add_child(health_value_label)
+	# HEALTH COMPONENT
+	health_display = HealthDisplay.new()
+	health_display.damage_flash_requested.connect(_on_damage_flash_requested)
+	health_display.shake_requested.connect(_on_shake_requested)
+	info_vbox.add_child(health_display)
 
 	# Spacer
 	var spacer = Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	info_vbox.add_child(spacer)
 
-	# COMBO LABEL - Massive neon text in play area
-	combo_label = Label.new()
-	combo_label.text = ""
-	combo_label.add_theme_font_size_override("font_size", 72)
-	combo_label.add_theme_color_override("font_color", NEON_YELLOW)
-	combo_label.add_theme_color_override("font_outline_color", NEON_PINK)
-	combo_label.add_theme_constant_override("outline_size", 6)
-	combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	combo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	combo_label.anchor_left = SIDE_PANEL_WIDTH / viewport_size.x
-	combo_label.anchor_right = (viewport_size.x - SIDE_PANEL_WIDTH) / viewport_size.x
-	combo_label.anchor_top = 0.2
-	combo_label.anchor_bottom = 0.3
-	combo_label.visible = false
-	combo_label.z_index = 50
-	add_child(combo_label)
+func _create_combo_display(viewport_size: Vector2) -> void:
+	combo_display = ComboDisplay.new()
+	combo_display.anchor_left = SIDE_PANEL_WIDTH / viewport_size.x
+	combo_display.anchor_right = (viewport_size.x - SIDE_PANEL_WIDTH) / viewport_size.x
+	combo_display.anchor_top = 0.2
+	combo_display.anchor_bottom = 0.3
+	combo_display.combo_flash_requested.connect(_on_combo_flash_requested)
+	add_child(combo_display)
 
-	_create_game_over_overlay(viewport_size)
+func _create_right_panel_content() -> void:
+	var right_margin = MarginContainer.new()
+	right_margin.anchor_right = 1.0
+	right_margin.anchor_bottom = 1.0
+	right_margin.add_theme_constant_override("margin_left", 20)
+	right_margin.add_theme_constant_override("margin_top", 40)
+	right_margin.add_theme_constant_override("margin_right", 20)
+	right_margin.add_theme_constant_override("margin_bottom", 40)
+	right_panel.add_child(right_margin)
+
+	weapons_hud = WeaponsHUD.new()
+	weapons_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_margin.add_child(weapons_hud)
+
+	print("[HUD] Weapons HUD created in RIGHT PANEL")
 
 func _create_neon_separator(color: Color) -> ColorRect:
 	var sep = ColorRect.new()
@@ -260,29 +187,8 @@ func _create_neon_separator(color: Color) -> ColorRect:
 	return sep
 
 func _add_glow_effect(label: Label, glow_color: Color) -> void:
-	# Outline effect simulates glow
 	label.add_theme_color_override("font_outline_color", glow_color)
 	label.add_theme_constant_override("outline_size", 4)
-
-func _start_background_animations() -> void:
-	# Pulsate title
-	var title_labels = get_tree().get_nodes_in_group("hud_title")
-	# Pulse wave label
-	if wave_label:
-		_create_pulse_animation(wave_label)
-
-	# Pulse health bar border when low
-	if health_bar:
-		_create_health_pulse()
-
-func _create_pulse_animation(node: Control) -> void:
-	var tween = create_tween().set_loops()
-	tween.tween_property(node, "modulate:a", 0.6, 1.0)
-	tween.tween_property(node, "modulate:a", 1.0, 1.0)
-
-func _create_health_pulse() -> void:
-	# Will activate when health is low (see _on_health_changed)
-	pass
 
 func _create_game_over_overlay(viewport_size: Vector2) -> void:
 	# ULTRA NEON GAME OVER
@@ -456,31 +362,12 @@ func _on_player_ready(player_node: Node2D) -> void:
 	player = player_node
 	_connect_to_player()
 
-func _create_right_panel_content() -> void:
-	# Margin container for weapons
-	var right_margin = MarginContainer.new()
-	right_margin.anchor_right = 1.0
-	right_margin.anchor_bottom = 1.0
-	right_margin.add_theme_constant_override("margin_left", 20)
-	right_margin.add_theme_constant_override("margin_top", 40)
-	right_margin.add_theme_constant_override("margin_right", 20)
-	right_margin.add_theme_constant_override("margin_bottom", 40)
-	right_panel.add_child(right_margin)
-
-	# Weapons HUD
-	weapons_hud = WeaponsHUD.new()
-	weapons_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_margin.add_child(weapons_hud)
-
-	print("[HUD] Weapons HUD created in RIGHT PANEL")
-
 func _connect_to_player() -> void:
 	print("[HUD] _connect_to_player called - Player is ready!")
 	if not player:
 		push_error("[HUD] ERROR: player is null!")
 		return
 
-	# Player is fully initialized, components should exist now
 	if not player.has_node("PlayerHost"):
 		push_error("[HUD] ❌ PlayerHost not found on player!")
 		return
@@ -495,12 +382,10 @@ func _connect_to_player() -> void:
 		health.damage_taken.connect(_on_damage_taken)
 		print("[HUD] ✅ Connected to damage_taken signal")
 
-		# Initialize health bar with current and max values
-		if health_bar:
-			health_bar.max_ammo = health.max_health
-			health_bar.current_ammo = health.current_health
-
-		_on_health_changed(health.current_health, health.current_health)
+		# Initialize health display
+		if health_display:
+			health_display.initialize_health(health.max_health)
+			health_display.set_health(health.current_health, health.max_health)
 	else:
 		push_error("[HUD] ❌ HealthComponent not found on PlayerHost!")
 
@@ -523,94 +408,65 @@ func _connect_to_wave_manager() -> void:
 	if wave_manager.has_signal("wave_started"):
 		wave_manager.wave_started.connect(_on_wave_started)
 
+#region Signal Handlers - Delegating to Components
 func _on_score_changed(new_score: int) -> void:
 	print("[HUD] _on_score_changed called! New score: %d" % new_score)
-	target_score = new_score
-	_pulse_score()
+	if score_display:
+		score_display.set_score(new_score)
 
-	if game_controller:
-		high_score_label.text = "◆ HI: %d" % game_controller.get_high_score()
-
-func _update_score_display() -> void:
-	if score_label:
-		score_label.text = "%d" % current_score
-	else:
-		print("[HUD] WARNING: score_label is null!")
-	if score_shadow:
-		score_shadow.text = "%d" % current_score
-	else:
-		print("[HUD] WARNING: score_shadow is null!")
-
-func _pulse_score() -> void:
-	if score_pulse_tween:
-		score_pulse_tween.kill()
-
-	score_pulse_tween = create_tween()
-	score_pulse_tween.tween_property(score_label, "scale", Vector2(1.2, 1.2), 0.1)
-	score_pulse_tween.tween_property(score_label, "scale", Vector2(1.0, 1.0), 0.1)
+	if game_controller and score_display:
+		score_display.set_high_score(game_controller.get_high_score())
 
 func _on_player_score_changed(new_score: int, _old: int) -> void:
 	if game_controller:
 		game_controller.add_score(new_score)
 
-func _on_health_changed(new_health: int, old_health: int) -> void:
-	print("[HUD] _on_health_changed called! New: %d, Old: %d" % [new_health, old_health])
-	if health_bar:
-		var max_health = health_bar.max_ammo
-		print("[HUD] Updating health bar to %d (max: %d)" % [new_health, max_health])
-
-		# Update segmented bar (with smooth animation)
-		health_bar.current_ammo = new_health
-
-		# Update text with max health
-		health_value_label.text = "%d / %d HP" % [new_health, max_health]
-
-		# Color shift based on health percentage
-		var health_percentage = float(new_health) / float(max_health)
-
-		if health_percentage < 0.25:
-			# Critical (below 25%) - Pink
-			health_value_label.add_theme_color_override("font_color", NEON_PINK)
-			# Pulse animation handled by AmmoSegmentedBar automatically
-		elif health_percentage < 0.5:
-			# Low (below 50%) - Orange
-			health_value_label.add_theme_color_override("font_color", NEON_ORANGE)
-		else:
-			# Healthy (above 50%) - Green
-			health_value_label.add_theme_color_override("font_color", NEON_GREEN)
-	else:
-		print("[HUD] WARNING: health_bar is null!")
+func _on_health_changed(new_health: int, _old_health: int) -> void:
+	print("[HUD] _on_health_changed called! New: %d" % new_health)
+	if health_display and player:
+		var host = player.get_node("PlayerHost")
+		var health = host.get_component("HealthComponent")
+		if health:
+			health_display.set_health(new_health, health.max_health)
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
-	# Red screen flash
-	_flash_screen(Color(NEON_PINK.r, 0, 0, 0.3), 0.15)
+	if health_display:
+		health_display.on_damage_taken(amount)
 
-	# Flash health bar (Megaman X style)
-	if health_bar:
-		health_bar.flash(NEON_PINK, 0.2)
+func _on_wave_started(wave_number: int) -> void:
+	if wave_manager and wave_display:
+		var total = wave_manager.get_total_waves()
+		wave_display.set_wave(wave_number, total)
 
-	# Shake health bar
-	_shake_health_bar()
+func _on_combo_changed(combo: int, multiplier: float) -> void:
+	if combo_display:
+		combo_display.show_combo(combo, multiplier)
 
-	# Screen shake
-	_screen_shake(5.0, 0.2)
+func _update_display() -> void:
+	print("[HUD] _update_display called")
+	if game_controller and score_display:
+		var current = game_controller.get_current_score()
+		print("[HUD] Initial score from game_controller: %d" % current)
+		_on_score_changed(current)
+	else:
+		print("[HUD] WARNING: game_controller or score_display is null!")
+#endregion
 
-func _start_critical_health_pulse() -> void:
-	# AmmoSegmentedBar now handles pulse automatically when health is low
-	# This function kept for compatibility but not needed anymore
-	pass
+#region Component Signal Handlers (Screen Effects)
+func _on_damage_flash_requested(color: Color, duration: float) -> void:
+	_flash_screen(color, duration)
 
-func _shake_health_bar() -> void:
-	var original_pos = health_bar.position
-	var tween = create_tween()
-	for i in range(5):
-		tween.tween_property(health_bar, "position", original_pos + Vector2(randf_range(-3, 3), 0), 0.05)
-	tween.tween_property(health_bar, "position", original_pos, 0.05)
+func _on_shake_requested(intensity: float, duration: float) -> void:
+	_screen_shake(intensity, duration)
+
+func _on_combo_flash_requested(color: Color, duration: float) -> void:
+	_flash_screen(color, duration)
 
 func _flash_screen(color: Color, duration: float) -> void:
-	screen_flash.color = color
-	var tween = create_tween()
-	tween.tween_property(screen_flash, "color:a", 0.0, duration)
+	if screen_flash:
+		screen_flash.color = color
+		var tween = create_tween()
+		tween.tween_property(screen_flash, "color:a", 0.0, duration)
 
 func _screen_shake(intensity: float, duration: float) -> void:
 	if not camera:
@@ -627,50 +483,9 @@ func _screen_shake(intensity: float, duration: float) -> void:
 		tween.tween_property(camera, "offset", original_offset + shake_offset, 0.05)
 
 	tween.tween_property(camera, "offset", original_offset, 0.05)
+#endregion
 
-func _on_wave_started(wave_number: int) -> void:
-	if wave_manager:
-		var total = wave_manager.get_total_waves()
-		wave_label.text = "%d / %d" % [wave_number, total]
-
-		# Pulse animation on wave change
-		var tween = create_tween()
-		tween.tween_property(wave_label, "scale", Vector2(1.3, 1.3), 0.2)
-		tween.tween_property(wave_label, "scale", Vector2(1.0, 1.0), 0.2)
-
-func _on_combo_changed(combo: int, multiplier: float) -> void:
-	if combo > 1:
-		combo_label.text = "◢ COMBO x%d ◣" % combo
-		combo_label.visible = true
-
-		# Scale punch animation
-		if combo_scale_tween:
-			combo_scale_tween.kill()
-
-		combo_scale_tween = create_tween()
-		combo_scale_tween.tween_property(combo_label, "scale", Vector2(1.5, 1.5), 0.1)
-		combo_scale_tween.tween_property(combo_label, "scale", Vector2(1.0, 1.0), 0.1)
-
-		# Fade out
-		var fade_tween = create_tween()
-		fade_tween.tween_property(combo_label, "modulate:a", 0.0, 0.8).set_delay(1.2)
-		fade_tween.tween_callback(func(): combo_label.visible = false)
-		fade_tween.tween_property(combo_label, "modulate:a", 1.0, 0.0)
-
-		# Screen flash yellow
-		_flash_screen(Color(NEON_YELLOW.r, NEON_YELLOW.g, 0, 0.2), 0.2)
-	else:
-		combo_label.visible = false
-
-func _update_display() -> void:
-	print("[HUD] _update_display called")
-	if game_controller:
-		var current = game_controller.get_current_score()
-		print("[HUD] Initial score from game_controller: %d" % current)
-		_on_score_changed(current)
-	else:
-		print("[HUD] WARNING: game_controller is null in _update_display!")
-
+#region Game Over
 func _on_game_over() -> void:
 	print("[NeonHUD] Game Over!")
 
@@ -711,10 +526,13 @@ func _on_restart_pressed() -> void:
 
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://examples/space_shooter/scenes/main_menu.tscn")
+#endregion
 
+#region Static Helpers
 static func get_play_area() -> Rect2:
 	var viewport_size = DisplayServer.window_get_size()
 	return Rect2(
 		Vector2(SIDE_PANEL_WIDTH, 0),
 		Vector2(viewport_size.x - SIDE_PANEL_WIDTH * 2, viewport_size.y)
 	)
+#endregion

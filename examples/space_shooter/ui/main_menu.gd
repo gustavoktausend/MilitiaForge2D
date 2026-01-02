@@ -15,7 +15,8 @@ var background: ColorRect
 #endregion
 
 #region Constants
-const LOADOUT_SELECTION_PATH = "res://examples/space_shooter/scenes/loadout_selection.tscn"
+# Using SceneManager key names instead of paths
+const LOADOUT_SELECTION_KEY = "loadout_selection"
 #endregion
 
 func _ready() -> void:
@@ -219,8 +220,15 @@ func _load_high_score() -> void:
 func _on_play_pressed() -> void:
 	print("[MainMenu] PLAY pressed - Loading loadout selection...")
 
-	# Go to unified loadout selection (pilot + ship + colors)
-	get_tree().change_scene_to_file(LOADOUT_SELECTION_PATH)
+	# Play UI sound
+	AudioManager.play_ui_sound("button_click", 1.0)
+
+	# Transition to loadout selection with squares effect (retro blocks)
+	var fade_out_options = SceneManager.create_options(0.5, "squares")  # 0.5s squares out
+	var fade_in_options = SceneManager.create_options(0.3, "squares")   # 0.3s squares in
+	var general_options = SceneManager.create_general_options()
+
+	SceneManager.change_scene(LOADOUT_SELECTION_KEY, fade_out_options, fade_in_options, general_options)
 
 func _on_options_pressed() -> void:
 	print("[MainMenu] OPTIONS pressed")
@@ -231,13 +239,15 @@ func _on_options_pressed() -> void:
 func _on_quit_pressed() -> void:
 	print("[MainMenu] QUIT pressed - Exiting game...")
 
-	# Fade out animation
-	var tween = create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.5)
-	await tween.finished
+	# Play UI sound
+	AudioManager.play_ui_sound("button_click", 0.8)
 
-	# Quit
-	get_tree().quit()
+	# Use SceneManager to quit with squares effect
+	var fade_out_options = SceneManager.create_options(0.5, "squares")
+	var fade_in_options = SceneManager.create_options(0.3, "squares")
+	var general_options = SceneManager.create_general_options()
+
+	SceneManager.change_scene("exit", fade_out_options, fade_in_options, general_options)
 
 func _show_coming_soon(message: String) -> void:
 	# Show temporary message

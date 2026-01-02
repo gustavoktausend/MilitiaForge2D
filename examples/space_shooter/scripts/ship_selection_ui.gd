@@ -167,11 +167,18 @@ func _on_select_pressed() -> void:
 		player_data.selected_ship_color = selected_color
 		player_data.selected_color_intensity = color_intensity
 
+	# Play UI sound
+	AudioManager.play_ui_sound("start_game", 1.2)
+
 	# Emit signal
 	ship_selected.emit(selected_ship)
 
-	# Transition to game scene
-	get_tree().change_scene_to_file("res://examples/space_shooter/scenes/main_game.tscn")
+	# Transition to game scene with squares effect (pixel blocks)
+	var fade_out_options = SceneManager.create_options(0.6, "squares")  # 0.6s squares out
+	var fade_in_options = SceneManager.create_options(0.4, "squares")   # 0.4s squares in
+	var general_options = SceneManager.create_general_options()
+
+	SceneManager.change_scene("main_game", fade_out_options, fade_in_options, general_options)
 
 func _on_color_selected(index: int) -> void:
 	selected_color = COLOR_PRESETS[index]

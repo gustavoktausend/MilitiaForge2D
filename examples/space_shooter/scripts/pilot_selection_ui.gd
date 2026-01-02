@@ -264,8 +264,15 @@ func _on_select_pressed() -> void:
 		player_data.select_pilot(current_index)
 		print("[PilotSelection] Selected pilot: %s" % selected_pilot.pilot_name)
 
+	# Play UI sound
+	AudioManager.play_ui_sound("button_click", 1.0)
+
 	# Emit signal
 	pilot_selected.emit(selected_pilot)
 
-	# Transition to ship selection scene
-	get_tree().change_scene_to_file("res://examples/space_shooter/scenes/ship_selection.tscn")
+	# Transition to ship selection scene with squares effect
+	var fade_out_options = SceneManager.create_options(0.4, "squares")  # 0.4s squares out
+	var fade_in_options = SceneManager.create_options(0.3, "squares")   # 0.3s squares in
+	var general_options = SceneManager.create_general_options()
+
+	SceneManager.change_scene("ship_selection", fade_out_options, fade_in_options, general_options)

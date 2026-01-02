@@ -57,29 +57,11 @@ func _ready() -> void:
 	if not ship_config and has_node("/root/PlayerData"):
 		var player_data = get_node("/root/PlayerData")
 		ship_config = player_data.get_selected_ship()
-		if ship_config:
-			print("[Player] Loaded ship config from PlayerData: %s" % ship_config.ship_name)
-		else:
-			print("[Player] No ship config found in PlayerData, using defaults")
-	elif ship_config:
-		print("[Player] Using pre-assigned ship config: %s" % ship_config.ship_name)
-	else:
-		print("[Player] No ship config available, using default values")
 
 	# Load pilot data from PlayerData
 	if has_node("/root/PlayerData"):
 		var player_data = get_node("/root/PlayerData")
 		pilot_data = player_data.get_selected_pilot()
-		if pilot_data:
-			print("[Player] 🎖️ Loaded pilot: %s (%s) %s" % [
-				pilot_data.pilot_name,
-				pilot_data.archetype,
-				pilot_data.get_difficulty_stars()
-			])
-		else:
-			print("[Player] No pilot selected, using baseline stats")
-	else:
-		print("[Player] PlayerData not found, no pilot bonuses applied")
 
 	_apply_ship_config()
 	_apply_pilot_modifiers()
@@ -95,25 +77,12 @@ func _apply_ship_config() -> void:
 		fire_rate = ship_config.get_fire_cooldown()
 		projectile_damage = ship_config.weapon_damage
 		projectile_speed = ship_config.projectile_speed
-		print("[Player] Applied ship config - Speed: %.0f, Health: %d, FireRate: %.2f, Damage: %d" %
-			[move_speed, max_health, fire_rate, projectile_damage])
-	else:
-		print("[Player] Using default stats - Speed: %.0f, Health: %d, FireRate: %.2f, Damage: %d" %
-			[move_speed, max_health, fire_rate, projectile_damage])
 
 ## Apply pilot modifiers (if pilot selected)
 ## Modifies ship stats based on pilot bonuses
 func _apply_pilot_modifiers() -> void:
 	if not pilot_data:
-		print("[Player] No pilot bonuses to apply")
 		return
-
-	print("╔════════════════════════════════════════════════════════════╗")
-	print("║          🎖️  APPLYING PILOT BONUSES 🎖️                    ║")
-	print("╠════════════════════════════════════════════════════════════╣")
-	print("║ Pilot: %s" % pilot_data.pilot_name)
-	print("║ Archetype: %s" % pilot_data.archetype)
-	print("╚════════════════════════════════════════════════════════════╝")
 
 	# Store original values for comparison
 	var original_health = max_health
@@ -125,23 +94,6 @@ func _apply_pilot_modifiers() -> void:
 
 	# Global damage and fire rate modifiers (applied to weapons later)
 	# These are stored and applied in _load_weapons_from_database()
-
-	# Log changes
-	print("[Player] Health: %d -> %d (%+d%%)" % [
-		original_health,
-		max_health,
-		int((pilot_data.health_modifier - 1.0) * 100)
-	])
-	print("[Player] Speed: %.0f -> %.0f (%+d%%)" % [
-		original_speed,
-		move_speed,
-		int((pilot_data.speed_modifier - 1.0) * 100)
-	])
-
-	if pilot_data.primary_ability != PilotData.AbilityType.NONE:
-		print("[Player] 🌟 Special Ability: %s" % PilotData.AbilityType.keys()[pilot_data.primary_ability])
-
-	print("╚════════════════════════════════════════════════════════════╝")
 
 func _setup_components() -> void:
 	print("╔═══════════════════════════════════════════════════════╗")
