@@ -467,6 +467,9 @@ func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	print("[Player] 🛡️ Invincible: %s" % health.is_invincible())
 	print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+	# Spawn damage number
+	_spawn_damage_number(amount, false)
+
 	# Visual feedback
 	_flash_damage()
 
@@ -483,6 +486,31 @@ func _flash_damage() -> void:
 		visual.color = Color(1.0, 0.2, 0.2)
 		await get_tree().create_timer(0.1).timeout
 		visual.color = original_color
+
+func _spawn_damage_number(damage: int, is_critical: bool = false) -> void:
+	# Load damage number script
+	var DamageNumber = load("res://examples/space_shooter/effects/damage_number.gd")
+	if not DamageNumber:
+		return
+
+	# Get position at player's physics body
+	var spawn_position = physics_body.global_position if physics_body else global_position
+
+	# Get the game world root
+	var game_root = get_tree().root
+
+	# Create damage number
+	var damage_label = Label.new()
+	damage_label.set_script(DamageNumber)
+	damage_label.position = spawn_position
+
+	# Add to root so it's not affected by player movement
+	game_root.add_child(damage_label)
+
+	# Player damage numbers are always red
+	var damage_color = Color(1.0, 0.08, 0.08) # NEON_RED
+
+	damage_label.setup(damage, is_critical, damage_color)
 
 func _on_health_changed(new_health: int, old_health: int) -> void:
 	print("[Player] Health changed: %d -> %d" % [old_health, new_health])
@@ -700,6 +728,9 @@ func _add_engine_trail() -> void:
 
 	trail.set("trail_color_start", trail_color_start)
 	trail.set("trail_color_end", trail_color_end)
+
+	# Inicializar o trail com as cores configuradas
+	trail.call("initialize")
 
 	print("[Player] Engine trail added with colors: %v -> %v" % [trail_color_start, trail_color_end])
 #endregion

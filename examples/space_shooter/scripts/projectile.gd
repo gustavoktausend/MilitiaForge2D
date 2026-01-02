@@ -248,9 +248,12 @@ func _spawn_impact_particles() -> void:
 	# Add to game world (not as child of projectile since projectile is being destroyed)
 	get_tree().root.add_child(impact)
 
-	# Configure impact
+	# Configure impact ANTES de iniciar
 	impact.set("impact_color", impact_color)
 	impact.set("impact_size", 30.0)
+
+	# Iniciar o impacto (isso chama _setup_particles com as cores corretas)
+	impact.call("start_impact")
 
 	# Play audio if AudioManager exists
 	if AudioManager and AudioManager.has_method("play_sfx"):

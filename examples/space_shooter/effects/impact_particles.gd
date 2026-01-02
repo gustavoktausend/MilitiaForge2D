@@ -18,6 +18,12 @@ const NEON_WHITE: Color = Color(1.0, 1.0, 1.0)
 #endregion
 
 func _ready() -> void:
+	# NÃO chamar _setup_particles() aqui ainda
+	# Aguardar as propriedades serem configuradas primeiro
+	pass
+
+func start_impact() -> void:
+	print("[ImpactParticles] Iniciando impacto com cor: ", impact_color)
 	_setup_particles()
 
 	# Auto-free after particles are done
@@ -76,13 +82,19 @@ func _setup_particles() -> void:
 	scale_curve.add_point(Vector2(1.0, 0.0))
 	material.scale_curve = scale_curve
 
-	# Color gradient (flash intenso, fade rápido)
+	# Color inicial
+	material.color = impact_color
+
+	# Color gradient - SEM flash branco, direto na cor neon
 	var gradient = Gradient.new()
-	gradient.add_point(0.0, NEON_WHITE)  # Flash branco
-	gradient.add_point(0.1, impact_color)  # Cor principal
-	gradient.add_point(0.4, Color(impact_color, 0.6))
-	gradient.add_point(1.0, Color(impact_color, 0.0))
+	gradient.add_point(0.0, impact_color)  # Começa direto na cor neon
+	gradient.add_point(0.3, impact_color)  # Mantém a cor
+	gradient.add_point(0.6, Color(impact_color.r, impact_color.g, impact_color.b, 0.6))
+	gradient.add_point(1.0, Color(impact_color.r, impact_color.g, impact_color.b, 0.0))
 	material.color_ramp = gradient
+
+	print("[ImpactParticles] Gradiente configurado com cor: ", impact_color)
+	print("[ImpactParticles] Material.color definido para: ", material.color)
 
 	# Apply material
 	process_material = material

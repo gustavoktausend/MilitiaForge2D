@@ -18,6 +18,12 @@ const NEON_BLUE: Color = Color(0.2, 0.6, 1.0)
 #endregion
 
 func _ready() -> void:
+	# Aguardar que as cores sejam configuradas antes de setup
+	# Chamar start_trail() explicitamente após configurar as cores
+	pass
+
+func initialize() -> void:
+	print("[EngineTrail] Inicializando trail com cores: ", trail_color_start, " -> ", trail_color_end)
 	_setup_particles()
 
 func _setup_particles() -> void:
@@ -63,12 +69,15 @@ func _setup_particles() -> void:
 	scale_curve.add_point(Vector2(1.0, 0.1))
 	material.scale_curve = scale_curve
 
-	# Color gradient (cyan to blue, fade out)
+	# Color gradient (start to end, fade out)
 	var gradient = Gradient.new()
 	gradient.add_point(0.0, trail_color_start)
-	gradient.add_point(0.5, Color(trail_color_end, 0.7))
-	gradient.add_point(1.0, Color(trail_color_end, 0.0))
+	gradient.add_point(0.4, trail_color_end)
+	gradient.add_point(0.7, Color(trail_color_end.r, trail_color_end.g, trail_color_end.b, 0.7))
+	gradient.add_point(1.0, Color(trail_color_end.r, trail_color_end.g, trail_color_end.b, 0.0))
 	material.color_ramp = gradient
+
+	print("[EngineTrail] Gradiente configurado: ", trail_color_start, " -> ", trail_color_end)
 
 	# Apply material
 	process_material = material

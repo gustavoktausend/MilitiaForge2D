@@ -453,9 +453,12 @@ func _fire_weapon_async(shoot_position: Vector2, shoot_direction: Vector2) -> vo
 
 func _on_damage_taken(amount: int, _attacker: Node) -> void:
 	print("%s took %d damage! Health: %d/%d" % [_get_log_prefix(), amount, health_component.current_health, health_component.max_health])
+
+	# Spawn damage number
+	_spawn_damage_number(amount, false)
+
 	# Visual feedback for taking damage
 	# particles.play_effect() - Would trigger particle effect if configured
-	pass
 
 func _on_enemy_died() -> void:
 	# Prevent multiple death notifications
@@ -515,6 +518,38 @@ func _spawn_powerup() -> void:
 	# This will be implemented when we create the powerup system
 	print("%s Should spawn powerup at: %v" % [_get_log_prefix(), global_position])
 
+func _spawn_damage_number(damage: int, is_critical: bool = false) -> void:
+	# Load damage number script
+	var DamageNumber = load("res://examples/space_shooter/effects/damage_number.gd")
+	if not DamageNumber:
+		return
+
+	# Get position at enemy's physics body
+	var spawn_position = physics_body.global_position if physics_body else global_position
+
+	# Get the game world root (usually the main game scene)
+	var game_root = get_tree().root
+
+	# Create damage number using static method
+	var damage_label = Label.new()
+	damage_label.set_script(DamageNumber)
+	damage_label.position = spawn_position
+
+	# Add to root so it's not affected by enemy destruction
+	game_root.add_child(damage_label)
+
+	# Setup color based on enemy type (for variety)
+	var damage_color: Color
+	match enemy_type:
+		"Tank":
+			damage_color = Color(0.58, 0.0, 0.83) # NEON_PURPLE
+		"Fast":
+			damage_color = Color(1.0, 0.94, 0.0) # NEON_YELLOW
+		_:
+			damage_color = Color(1.0, 1.0, 1.0) # NEON_WHITE
+
+	damage_label.setup(damage, is_critical, damage_color)
+
 func _spawn_explosion_particles() -> void:
 	# Load explosion particles script
 	var ExplosionParticles = load("res://examples/space_shooter/effects/explosion_particles.gd")
@@ -536,7 +571,7 @@ func _spawn_explosion_particles() -> void:
 			explosion_color = Color(1.0, 0.08, 0.58) # NEON_PINK for basic
 
 	# Set size based on enemy type
-	var explosion_size: float = 100.0 if enemy_type != "Tank" else 150.0
+	var explosion_size: float = 60.0 if enemy_type != "Tank" else 90.0
 
 	# Position at enemy death location
 	explosion.global_position = physics_body.global_position if physics_body else global_position
@@ -544,9 +579,12 @@ func _spawn_explosion_particles() -> void:
 	# Add to game world (not as child of enemy since enemy is being destroyed)
 	get_tree().root.add_child(explosion)
 
-	# Configure explosion
+	# Configure explosion ANTES de iniciar
 	explosion.set("explosion_color", explosion_color)
 	explosion.set("explosion_radius", explosion_size)
+
+	# Iniciar a explosão (isso chama _setup_particles com as cores corretas)
+	explosion.call("start_explosion")
 
 	# Play audio if AudioManager exists
 	if AudioManager and AudioManager.has_method("play_sfx"):

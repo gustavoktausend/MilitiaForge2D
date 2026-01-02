@@ -14,13 +14,23 @@ const NEON_PURPLE: Color = Color(0.58, 0.0, 0.83)
 
 #region Export Variables
 @export var explosion_color: Color = NEON_PINK
-@export var particle_count: int = 50
-@export var explosion_radius: float = 100.0
+@export var particle_count: int = 30
+@export var explosion_radius: float = 60.0
 @export var particle_lifetime: float = 1.0
-@export var particle_scale: float = 3.0
+@export var particle_scale: float = 1.5
 #endregion
 
 func _ready() -> void:
+	# NÃO chamar _setup_particles() aqui ainda
+	# Aguardar as propriedades serem configuradas primeiro
+	pass
+
+func start_explosion() -> void:
+	print("[ExplosionParticles] Iniciando explosão com cor: ", explosion_color)
+
+	# Garantir que modulate não está interferindo
+	modulate = Color(1, 1, 1, 1)
+
 	_setup_particles()
 
 	# Auto-free after particles are done
@@ -80,25 +90,30 @@ func _setup_particles() -> void:
 	scale_curve.add_point(Vector2(1.0, 0.0))  # Desaparecem
 	material.scale_curve = scale_curve
 
-	# Color gradient (bright flash inicial, depois cor, depois fade)
+	# Color inicial
+	material.color = explosion_color
+
+	# Color gradient - SEM flash branco, direto na cor neon
 	var gradient = Gradient.new()
-	gradient.add_point(0.0, Color(1.0, 1.0, 1.0, 1.0))  # Flash branco inicial
-	gradient.add_point(0.1, explosion_color)  # Cor principal
-	gradient.add_point(0.4, Color(explosion_color, 0.9))
-	gradient.add_point(0.7, Color(explosion_color, 0.5))
-	gradient.add_point(1.0, Color(explosion_color, 0.0))  # Fade completo
+	gradient.add_point(0.0, explosion_color)  # Começa direto na cor neon
+	gradient.add_point(0.3, explosion_color)  # Mantém a cor
+	gradient.add_point(0.6, Color(explosion_color.r, explosion_color.g, explosion_color.b, 0.7))
+	gradient.add_point(1.0, Color(explosion_color.r, explosion_color.g, explosion_color.b, 0.0))  # Fade completo
 	material.color_ramp = gradient
+
+	print("[ExplosionParticles] Gradiente configurado com cor: ", explosion_color)
+	print("[ExplosionParticles] Material.color definido para: ", material.color)
 
 	# Apply material
 	process_material = material
 
 	# Create texture (círculo com gradiente suave para melhor visual)
-	var image = Image.create(8, 8, false, Image.FORMAT_RGBA8)
-	for x in range(8):
-		for y in range(8):
-			var dist = Vector2(x - 4, y - 4).length()
-			if dist < 4.0:
-				var alpha = 1.0 - (dist / 4.0)
+	var image = Image.create(6, 6, false, Image.FORMAT_RGBA8)
+	for x in range(6):
+		for y in range(6):
+			var dist = Vector2(x - 3, y - 3).length()
+			if dist < 3.0:
+				var alpha = 1.0 - (dist / 3.0)
 				image.set_pixel(x, y, Color(1, 1, 1, alpha))
 			else:
 				image.set_pixel(x, y, Color(0, 0, 0, 0))
