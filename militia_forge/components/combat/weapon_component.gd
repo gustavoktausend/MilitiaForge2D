@@ -109,6 +109,9 @@ enum WeaponType {
 ## Team for projectiles
 @export var projectile_team: ProjectileComponent.Team = ProjectileComponent.Team.PLAYER
 
+## Projectile visual scale multiplier (for size upgrades)
+@export var projectile_scale: float = 1.0
+
 ## Whether to print debug messages
 @export var debug_weapon: bool = false
 
@@ -451,7 +454,8 @@ func _spawn_projectile(base_direction: Vector2, angle_offset: float) -> void:
 				direction,
 				projectile_speed,
 				damage,
-				projectile_team == ProjectileComponent.Team.PLAYER
+				projectile_team == ProjectileComponent.Team.PLAYER,
+				projectile_scale  # Pass scale multiplier
 			)
 
 			if projectile and debug_weapon:
@@ -464,7 +468,8 @@ func _spawn_projectile(base_direction: Vector2, angle_offset: float) -> void:
 				"speed": projectile_speed,
 				"damage": damage,
 				"team": projectile_team,
-				"is_player_projectile": projectile_team == ProjectileComponent.Team.PLAYER
+				"is_player_projectile": projectile_team == ProjectileComponent.Team.PLAYER,
+				"visual_scale": projectile_scale  # Pass scale multiplier
 			})
 
 			if projectile and debug_weapon:
@@ -492,6 +497,10 @@ func _spawn_projectile(base_direction: Vector2, angle_offset: float) -> void:
 			projectile_comp.speed = projectile_speed
 			projectile_comp.direction = direction
 			projectile_comp.team = projectile_team
+
+		# Apply visual scale if projectile has the property
+		if "visual_scale" in projectile:
+			projectile.visual_scale = projectile_scale
 
 		# Set initial position
 		projectile.global_position = spawn_pos

@@ -613,27 +613,96 @@ Loja funcional que abre entre waves, permitindo compra de upgrades permanentes e
 
 #### ✅ Funcionando 100% (Aplicam efeito no player):
 
-| Upgrade | Effect ID | Aplica em | Status |
-|---------|-----------|-----------|--------|
-| 💚 Health Boost | `health` | `HealthComponent.max_health` | ✅ FUNCIONA |
-| 💨 Speed Boost | `speed` | `BoundedMovement.max_speed` | ✅ FUNCIONA |
-| 💗 Regeneration | `regen` | `HealthComponent.regeneration_rate` | ✅ FUNCIONA |
-| 🛡️ I-Frame Boost | `iframe` | `HealthComponent.invincibility_duration` | ✅ FUNCIONA |
+| Upgrade | Effect ID | Aplica em | Status | Data |
+|---------|-----------|-----------|--------|------|
+| 💚 Health Boost | `health` | `HealthComponent.max_health` | ✅ FUNCIONA | 2026-01-03 |
+| 💨 Speed Boost | `speed` | `BoundedMovement.max_speed` | ✅ FUNCIONA | 2026-01-03 |
+| 💗 Regeneration | `regen` | `HealthComponent.regeneration_rate` | ✅ FUNCIONA | 2026-01-03 |
+| 🛡️ I-Frame Boost | `iframe` | `HealthComponent.invincibility_duration` | ✅ FUNCIONA | 2026-01-03 |
+| 💥 Damage Boost | `damage` | `WeaponData.damage` (todos os slots) | ✅ FUNCIONA | 2026-01-04 |
+| ⚡ Fire Rate | `fire_rate` | `WeaponData.fire_rate` (todos os slots) | ✅ FUNCIONA | 2026-01-04 |
+| 🔷 Piercing Shots | `piercing` | `WeaponData.is_piercing` + `pierce_count` | ✅ FUNCIONA | 2026-01-04 |
+| 🎯 Homing | `homing` | `WeaponData.is_homing` | ✅ FUNCIONA | 2026-01-04 |
+| ⚪ Bigger Bullets | `projectile_size` | `WeaponData.projectile_scale` → `Projectile.visual_scale` | ✅ FUNCIONA | 2026-01-04 |
+| 👼 Extra Life | `extra_life` | `UpgradeManager.consume_extra_life()` → `_respawn_player()` | ✅ FUNCIONA | 2026-01-04 |
+
+#### 📝 Implementação dos Upgrades de Arma (FASE 4.1 - COMPLETA):
+
+**Arquivos Modificados**:
+
+1. **`player_controller.gd`** (linhas 760-908)
+   - ✅ `modify_damage_multiplier()` - Multiplica damage de todos os weapon slots
+   - ✅ `modify_fire_rate_multiplier()` - Reduz fire cooldown (aumenta rate)
+   - ✅ `modify_piercing()` - Ativa piercing e adiciona pierce_count
+   - ✅ `enable_homing()` - Ativa homing em todos os weapon slots
+   - ✅ `modify_projectile_size()` - Multiplica projectile_scale
+
+2. **`weapon_data.gd`** (linha 95)
+   - ✅ Adicionado `@export var projectile_scale: float = 1.0`
+
+3. **`weapon_slot_manager.gd`** (linhas 508-510)
+   - ✅ Aplica `projectile_scale` do WeaponData ao WeaponComponent
+
+4. **`weapon_component.gd`** (linha 113)
+   - ✅ Adicionado `@export var projectile_scale: float = 1.0`
+   - ✅ Passa `projectile_scale` ao spawn_projectile (linha 458)
+   - ✅ Passa `visual_scale` ao spawn_entity (linha 472)
+   - ✅ Aplica `visual_scale` ao projectile instantiado (linha 502)
+
+5. **`projectile.gd`** (linha 18)
+   - ✅ Adicionado `@export var visual_scale: float = 1.0`
+   - ✅ Aplica escala ao sprite (linha 68)
+   - ✅ Aplica escala ao ColorRect fallback (linha 77)
+
+6. **`entity_pool_manager.gd`** (linhas 172, 180)
+   - ✅ Adicionado parâmetro `visual_scale: float = 1.0`
+   - ✅ Passa `visual_scale` ao spawn_entity
+
+**Como Funciona**:
+```
+UpgradeManager.purchase_upgrade()
+    ↓
+PlayerController.modify_damage_multiplier() (por exemplo)
+    ↓
+WeaponData.damage *= multiplier (para PRIMARY, SECONDARY, SPECIAL)
+    ↓
+WeaponSlotManager._apply_weapon_data()
+    ↓
+WeaponComponent.damage = WeaponData.damage
+    ↓
+Projectile é criado com damage atualizado
+```
 
 #### ⏸️ TODO - Upgrades de Arma (precisam implementação):
 
-| Upgrade | Effect ID | Problema | Solução Necessária |
-|---------|-----------|----------|-------------------|
-| 💥 Damage Boost | `damage` | `WeaponSlotManager` não tem `damage_multiplier` global | Modificar `WeaponData.damage` de cada slot individualmente |
-| ⚡ Fire Rate | `fire_rate` | `WeaponSlotManager` não tem `fire_rate_multiplier` global | Modificar `WeaponData.fire_cooldown` de cada slot |
-| 🔷 Piercing | `piercing` | `WeaponSlotManager` não tem `piercing_count` | Adicionar propriedade ao WeaponData ou criar sistema de modificadores |
-| 🎯 Homing | `homing` | `WeaponSlotManager` não tem `homing_enabled` | Adicionar propriedade ao WeaponData para homing |
-| ⚪ Bigger Bullets | `projectile_size` | `WeaponSlotManager` não tem `projectile_size_multiplier` | Modificar ProjectileData ou adicionar modificador visual |
+NENHUM! Todos os 5 upgrades de arma foram implementados com sucesso.
 
-**Localização para implementar**:
-- Arquivo: `player_controller.gd` linhas 750-815
-- WeaponSlotManager: `militia_forge/components/combat/weapon_slot_manager.gd`
-- WeaponData: Precisa ser localizado e entendido
+#### 📝 Implementação do Extra Life (FASE 4.2 - Item 1):
+
+**Arquivos Modificados**:
+
+1. **`player_controller.gd`** (linhas 548-612)
+   - ✅ Modificado `_on_player_died()` - Verifica extra lives antes de game over
+   - ✅ Adicionado `_respawn_player()` - Sistema completo de respawn:
+     - Restaura health para máximo
+     - Reposiciona player no spawn point (960, 900)
+     - Ativa invencibilidade por 3 segundos
+     - Efeito visual de flash (6 loops)
+
+**Como Funciona**:
+```
+Player morre → _on_player_died()
+    ↓
+UpgradeManager.consume_extra_life() retorna true?
+    ↓ (SIM)
+_respawn_player()
+    - health.current_health = max_health
+    - physics_body.position = spawn_point
+    - health._is_invincible = true (3s)
+    - Visual flash effect
+    ↓ (NÃO)
+Game Over (end_game)
+```
 
 #### ⏸️ TODO - Sistemas Faltantes:
 
@@ -641,7 +710,6 @@ Loja funcional que abre entre waves, permitindo compra de upgrades permanentes e
 |---------|-----------|----------|-------------------|
 | 🧲 Magnet | `pickup_range` | Sistema de pickup range não existe | Criar PickupRangeComponent ou adicionar ao player |
 | 🍀 Lucky Charm | `drop_rate` | PowerUpFactory não tem modificador de drop rate | Adicionar variável global de multiplicador no PowerUpFactory |
-| 👼 Extra Life | `extra_life` | Sistema de morte/respawn não integrado | Integrar UpgradeManager.consume_extra_life() ao death handler |
 | 🔰 Shield (consumable) | `shield_buff` | HealthComponent não tem método add_shield | Criar sistema de shield temporário no HealthComponent |
 | ⭐ Score Boost (consumable) | `score_mult` | GameController não tem score multiplier | Adicionar score_multiplier ao GameController |
 | 🔥 Rapid Fire (consumable) | `rapid_fire` | Buffs temporários não aplicam/removem corretamente | Testar e corrigir sistema de buff expiration |
@@ -859,17 +927,17 @@ func add_score(points: int) -> void:
 
 | Categoria | Total Items | Funcionando | TODO | % Completo |
 |-----------|-------------|-------------|------|-----------|
-| TIER 1 (Basic) | 5 | 2 | 3 | 40% |
-| TIER 2 (Advanced) | 5 | 1 | 4 | 20% |
-| TIER 3 (Special) | 2 | 1 | 1 | 50% |
+| TIER 1 (Basic) | 5 | 5 | 0 | 100% ✅ |
+| TIER 2 (Advanced) | 5 | 4 | 1 | 80% |
+| TIER 3 (Special) | 2 | 2 | 0 | 100% ✅ |
 | CONSUMABLES | 3 | 0 | 3 | 0% |
-| **TOTAL** | **15** | **4** | **11** | **27%** |
+| **TOTAL** | **15** | **11** | **4** | **73%** |
 
 ---
 
 ### Próximas Fases Recomendadas:
 
-- **FASE 4.1**: Upgrades de Arma (3-4h) - Damage, Fire Rate, Piercing, Homing, Bigger Bullets
+- ✅ ~~**FASE 4.1**: Upgrades de Arma~~ - **COMPLETA!** (2026-01-04)
 - **FASE 4.2**: Sistemas Auxiliares (2-3h) - Pickup Range, Drop Rate, Extra Lives
 - **FASE 5**: Consumables & Buffs (2h) - Shield, Score Mult, Rapid Fire testing
 - **FASE 6**: Polish & Balance (3-4h) - Audio, visual polish, balanceamento
@@ -878,6 +946,6 @@ func add_score(points: int) -> void:
 
 ---
 
-**Última atualização**: 2026-01-03
-**Progresso Geral do Sistema de Economia**: ~65% (FASE 1, 2 e 3 completas)
-**Progresso de Upgrades Funcionais**: 27% (4/15 items aplicam efeito)
+**Última atualização**: 2026-01-04
+**Progresso Geral do Sistema de Economia**: ~80% (FASE 1, 2, 3, 4.1 e 4.2-partial completas)
+**Progresso de Upgrades Funcionais**: 73% (11/15 items aplicam efeito)

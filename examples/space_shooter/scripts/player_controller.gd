@@ -52,6 +52,14 @@ var pilot_abilities: PilotAbilitySystem  # Handles pilot special abilities
 var physics_body: CharacterBody2D  # Reference to the physics body
 #endregion
 
+#region Base Stats (for upgrades)
+## Store base weapon stats before any upgrades are applied
+var _base_weapon_damage: Array[int] = [0, 0, 0]  # [PRIMARY, SECONDARY, SPECIAL]
+var _base_weapon_fire_rate: Array[float] = [0.0, 0.0, 0.0]
+var _base_weapon_pierce_count: Array[int] = [0, 0, 0]
+var _base_weapon_projectile_scale: Array[float] = [1.0, 1.0, 1.0]
+#endregion
+
 func _ready() -> void:
 	# Load ship config from PlayerData if not set
 	if not ship_config and has_node("/root/PlayerData"):
@@ -268,6 +276,9 @@ func _setup_components() -> void:
 
 	# Wait for weapon manager to initialize
 	await get_tree().process_frame
+
+	# Store base weapon stats NOW, after weapon_manager is fully initialized
+	_store_base_weapon_stats()
 
 	# Dependency Injection: Set projectiles container for all weapons
 	var projectiles_container = get_tree().get_first_node_in_group("ProjectilesContainer")
@@ -536,7 +547,23 @@ func _on_weapon_empty(slot: int) -> void:
 
 func _on_player_died() -> void:
 	print("╔═══════════════════════════════════════╗")
-	print("║   💀 PLAYER DIED! GAME OVER 💀        ║")
+	print("║   💀 PLAYER DIED!                     ║")
+	print("╚═══════════════════════════════════════╝")
+
+	# Check for extra lives
+	if UpgradeManager.consume_extra_life():
+		print("╔═══════════════════════════════════════╗")
+		print("║   👼 EXTRA LIFE USED! RESPAWNING...   ║")
+		print("║   Extra Lives Remaining: %d            ║" % UpgradeManager.get_extra_lives())
+		print("╚═══════════════════════════════════════╝")
+
+		# Respawn player
+		_respawn_player()
+		return
+
+	# No extra lives - Game Over
+	print("╔═══════════════════════════════════════╗")
+	print("║   💀 GAME OVER - No Extra Lives       ║")
 	print("╚═══════════════════════════════════════╝")
 
 	# Hide player
@@ -550,6 +577,39 @@ func _on_player_died() -> void:
 		controllers[0].end_game()
 	else:
 		push_error("[Player] NO GAME CONTROLLER FOUND! Cannot trigger Game Over!")
+
+func _respawn_player() -> void:
+	"""Respawn player after consuming an extra life"""
+	# Restore health to full
+	if health:
+		health.current_health = health.max_health
+		health.health_changed.emit(health.current_health, health.current_health)
+
+	# Reset position to spawn point (center bottom of play area)
+	if physics_body:
+		# Get play area bounds from movement component
+		var spawn_x = 960  # Center of 1920px screen
+		var spawn_y = 900  # Bottom area of play zone
+		physics_body.global_position = Vector2(spawn_x, spawn_y)
+
+	# Make player visible
+	visible = true
+
+	# Grant brief invincibility period by directly setting the internal state
+	if health:
+		# Manually trigger invincibility for respawn protection
+		health._is_invincible = true
+		health._invincibility_timer = 3.0  # 3 seconds of invincibility after respawn
+		health.invincibility_started.emit()
+
+	# Visual feedback - flash effect
+	if physics_body:
+		var tween = create_tween()
+		tween.set_loops(6)
+		tween.tween_property(self, "modulate:a", 0.3, 0.25)
+		tween.tween_property(self, "modulate:a", 1.0, 0.25)
+
+	print("[Player] Respawn complete at position: %v" % physics_body.global_position)
 
 func add_score(points: int) -> void:
 	if score:
@@ -659,6 +719,19 @@ func _load_weapons_from_database() -> void:
 
 	print("╚════════════════════════════════════════════════════╝")
 
+## Store base weapon stats for use with upgrades
+func _store_base_weapon_stats() -> void:
+	if not weapon_manager:
+		return
+
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if weapon_data:
+			_base_weapon_damage[slot] = weapon_data.damage
+			_base_weapon_fire_rate[slot] = weapon_data.fire_rate
+			_base_weapon_pierce_count[slot] = weapon_data.pierce_count
+			_base_weapon_projectile_scale[slot] = weapon_data.projectile_scale
+
 ## Apply pilot modifiers to weapon based on category
 ## Multiplies damage, fire rate, and ammo by pilot bonuses
 func _apply_pilot_weapon_modifiers(weapon: WeaponData, category: int) -> void:
@@ -759,15 +832,39 @@ func modify_max_health(bonus: int) -> void:
 
 func modify_damage_multiplier(multiplier: float) -> void:
 	"""Apply damage multiplier to all weapons"""
-	# TODO: Implement weapon damage modification
-	# WeaponSlotManager doesn't have global multipliers - need to modify individual weapon data
-	print("[Player] Damage multiplier: ×%.2f (TODO: not yet implemented)" % multiplier)
+	if not weapon_manager:
+		push_warning("[Player] WeaponSlotManager not found")
+		return
+
+	# Modify damage for all weapon slots based on BASE values
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if not weapon_data or _base_weapon_damage[slot] <= 0:
+			continue
+
+		# Calculate from BASE damage, not current modified value
+		var new_damage = int(_base_weapon_damage[slot] * multiplier)
+		weapon_data.damage = new_damage
+
+		# Reapply weapon data to update the component
+		weapon_manager._apply_weapon_data(slot, weapon_data)
 
 func modify_fire_rate_multiplier(multiplier: float) -> void:
 	"""Apply fire rate multiplier to all weapons"""
-	# TODO: Implement weapon fire rate modification
-	# WeaponSlotManager doesn't have global multipliers - need to modify individual weapon data
-	print("[Player] Fire rate multiplier: ×%.2f (TODO: not yet implemented)" % multiplier)
+	if not weapon_manager:
+		push_warning("[Player] WeaponSlotManager not found")
+		return
+
+	# Modify fire rate for all weapon slots based on BASE values
+	# Higher multiplier = faster fire rate = lower cooldown
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if weapon_data and _base_weapon_fire_rate[slot] > 0:
+			# Calculate from BASE fire rate, not current modified value
+			weapon_data.fire_rate = _base_weapon_fire_rate[slot] / multiplier  # Lower cooldown = higher rate
+
+			# Reapply weapon data to update the component
+			weapon_manager._apply_weapon_data(slot, weapon_data)
 
 func modify_speed_multiplier(multiplier: float) -> void:
 	"""Apply speed multiplier to movement"""
@@ -784,13 +881,38 @@ func modify_pickup_range(multiplier: float) -> void:
 
 func modify_piercing(pierce_count: int) -> void:
 	"""Add piercing to projectiles"""
-	# TODO: Implement piercing modification
-	print("[Player] Piercing: +%d (TODO: not yet implemented)" % pierce_count)
+	if not weapon_manager:
+		push_warning("[Player] WeaponSlotManager not found")
+		return
+
+	# Enable piercing and add pierce count for all weapon slots based on BASE values
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if weapon_data:
+			# Enable piercing if not already enabled
+			if not weapon_data.is_piercing:
+				weapon_data.is_piercing = true
+
+			# Set to base + pierce_count (cumulative from base)
+			weapon_data.pierce_count = _base_weapon_pierce_count[slot] + pierce_count
+
+			# Reapply weapon data to update the component
+			weapon_manager._apply_weapon_data(slot, weapon_data)
 
 func enable_homing(enabled: bool) -> void:
 	"""Enable homing projectiles"""
-	# TODO: Implement homing modification
-	print("[Player] Homing enabled: %s (TODO: not yet implemented)" % enabled)
+	if not weapon_manager:
+		push_warning("[Player] WeaponSlotManager not found")
+		return
+
+	# Enable homing for all weapon slots
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if weapon_data:
+			weapon_data.is_homing = enabled
+
+			# Reapply weapon data to update the component
+			weapon_manager._apply_weapon_data(slot, weapon_data)
 
 func modify_regeneration(regen_per_second: float) -> void:
 	"""Add health regeneration"""
@@ -807,8 +929,19 @@ func modify_drop_rate(multiplier: float) -> void:
 
 func modify_projectile_size(multiplier: float) -> void:
 	"""Increase projectile size"""
-	# TODO: Implement projectile size modification
-	print("[Player] Projectile size: ×%.2f (TODO: not yet implemented)" % multiplier)
+	if not weapon_manager:
+		push_warning("[Player] WeaponSlotManager not found")
+		return
+
+	# Modify projectile scale for all weapon slots based on BASE values
+	for slot in [WeaponData.Category.PRIMARY, WeaponData.Category.SECONDARY, WeaponData.Category.SPECIAL]:
+		var weapon_data = weapon_manager.get_weapon_data(slot)
+		if weapon_data:
+			# Calculate from BASE scale, not current modified value
+			weapon_data.projectile_scale = _base_weapon_projectile_scale[slot] * multiplier
+
+			# Reapply weapon data to update the component
+			weapon_manager._apply_weapon_data(slot, weapon_data)
 
 func modify_iframe_duration(bonus: float) -> void:
 	"""Increase invincibility frame duration"""
