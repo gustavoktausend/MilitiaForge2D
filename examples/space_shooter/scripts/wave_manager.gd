@@ -196,8 +196,23 @@ func _complete_wave() -> void:
 	print("[WaveManager] Wave %d completed!" % current_wave)
 	wave_completed.emit(current_wave)
 
-	# Start next wave after delay
-	await get_tree().create_timer(wave_delay).timeout
+	# Check expired buffs in UpgradeManager
+	if UpgradeManager:
+		UpgradeManager.check_expired_buffs(current_wave + 1)
+
+	# Delay before opening shop
+	await get_tree().create_timer(2.0).timeout
+
+	# Open shop (FASE 3: Shop UI)
+	var shop_ui = get_tree().get_first_node_in_group("shop_ui")
+	if shop_ui and shop_ui.has_method("open_shop"):
+		shop_ui.open_shop(current_wave)
+		await shop_ui.shop_closed
+		print("[WaveManager] Shop closed, starting next wave...")
+	else:
+		push_warning("[WaveManager] ShopUI not found - skipping shop")
+		await get_tree().create_timer(wave_delay).timeout
+
 	start_next_wave()
 
 func get_current_wave() -> int:

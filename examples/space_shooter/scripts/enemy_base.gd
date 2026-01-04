@@ -5,6 +5,10 @@
 
 class_name SpaceEnemy extends Node2D
 
+#region Preloads
+const PowerUpFactory = preload("res://examples/space_shooter/scripts/pickups/power_up_factory.gd")
+#endregion
+
 #region Signals
 signal enemy_died(enemy: SpaceEnemy, score_value: int)
 #endregion
@@ -515,8 +519,24 @@ func _get_log_prefix() -> String:
 	return "[Enemy #%d %s]" % [_enemy_id, enemy_type]
 
 func _spawn_powerup() -> void:
-	# This will be implemented when we create the powerup system
-	print("%s Should spawn powerup at: %v" % [_get_log_prefix(), global_position])
+	# Use PowerUpFactory to create random power-up
+	var powerup = PowerUpFactory.create()
+	if not powerup:
+		push_error("%s Failed to create power-up!" % _get_log_prefix())
+		return
+
+	# Position at enemy death location
+	powerup.global_position = physics_body.global_position if physics_body else global_position
+
+	# Add to PickupsContainer (or root if container doesn't exist)
+	var container = get_tree().get_first_node_in_group("PickupsContainer")
+	if container:
+		container.add_child(powerup)
+		print("%s Spawned power-up: %s" % [_get_log_prefix(), powerup.get_class()])
+	else:
+		# Fallback to root
+		get_tree().root.add_child(powerup)
+		push_warning("%s PickupsContainer not found, added power-up to root" % _get_log_prefix())
 
 func _spawn_damage_number(damage: int, is_critical: bool = false) -> void:
 	# Load damage number script

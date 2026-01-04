@@ -12,6 +12,7 @@ const ScoreDisplay = preload("res://examples/space_shooter/ui/components/score_d
 const ComboDisplay = preload("res://examples/space_shooter/ui/components/combo_display.gd")
 const HealthDisplay = preload("res://examples/space_shooter/ui/components/health_display.gd")
 const WaveDisplay = preload("res://examples/space_shooter/ui/components/wave_display.gd")
+const CreditDisplay = preload("res://examples/space_shooter/ui/components/credit_display.gd")  # FASE 2
 #endregion
 
 #region Constants
@@ -33,6 +34,7 @@ var score_display: Node  # ScoreDisplay component
 var combo_display: Node  # ComboDisplay component
 var health_display: Node  # HealthDisplay component
 var wave_display: Node   # WaveDisplay component
+var credit_display: Node  # CreditDisplay component - FASE 2
 var weapons_hud: WeaponsHUD
 #endregion
 
@@ -143,6 +145,10 @@ func _create_left_panel_content() -> void:
 	# WAVE COMPONENT
 	wave_display = WaveDisplay.new()
 	info_vbox.add_child(wave_display)
+
+	# CREDIT COMPONENT - FASE 2
+	credit_display = CreditDisplay.new()
+	info_vbox.add_child(credit_display)
 
 	# HEALTH COMPONENT
 	health_display = HealthDisplay.new()
@@ -323,6 +329,9 @@ func _connect_to_game() -> void:
 		if game_controller.has_signal("score_changed"):
 			game_controller.score_changed.connect(_on_score_changed)
 			print("[HUD] Connected to score_changed signal")
+		if game_controller.has_signal("credits_changed"):
+			game_controller.credits_changed.connect(_on_credits_changed)
+			print("[HUD] Connected to credits_changed signal (FASE 2)")
 		if game_controller.has_signal("game_over"):
 			game_controller.game_over.connect(_on_game_over)
 			print("[HUD] Connected to game_over signal")
@@ -416,6 +425,11 @@ func _on_score_changed(new_score: int) -> void:
 
 	if game_controller and score_display:
 		score_display.set_high_score(game_controller.get_high_score())
+
+func _on_credits_changed(new_credits: int, delta: int) -> void:
+	print("[HUD] _on_credits_changed called! Credits: %d (Δ%+d)" % [new_credits, delta])
+	if credit_display:
+		credit_display.set_credits(new_credits, delta)
 
 func _on_player_score_changed(new_score: int, _old: int) -> void:
 	if game_controller:

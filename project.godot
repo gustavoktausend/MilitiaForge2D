@@ -24,6 +24,7 @@ PlayerData="*res://examples/space_shooter/scripts/player_data.gd"
 EntityPoolManager="*res://examples/space_shooter/scripts/entity_pool_manager.gd"
 SceneManager="*res://addons/scene_manager/scene_manager.tscn"
 Scenes="*res://addons/scene_manager/scenes.gd"
+UpgradeManager="*res://examples/space_shooter/scripts/upgrade_manager.gd"
 
 [display]
 

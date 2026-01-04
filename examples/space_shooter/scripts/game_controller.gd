@@ -10,6 +10,7 @@ signal game_started()
 signal game_over()
 signal score_changed(new_score: int)
 signal health_changed(current_health: int, max_health: int)
+signal credits_changed(new_credits: int, delta: int)  # FASE 2: Credit system
 #endregion
 
 #region Node References
@@ -30,6 +31,9 @@ enum GameState {
 var current_state: GameState = GameState.MENU
 var current_score: int = 0
 var high_score: int = 0
+
+# FASE 2: Credit System (currency for shop)
+var current_credits: int = 0
 #endregion
 
 func _ready() -> void:
@@ -49,6 +53,12 @@ func start_game() -> void:
 	print("[GameController] Starting game...")
 	current_state = GameState.PLAYING
 	current_score = 0
+	current_credits = 0  # FASE 2: Reset credits on game start
+
+	# FASE 3: Initialize shop database and reset upgrades
+	ShopDatabase.initialize()
+	if UpgradeManager:
+		UpgradeManager.reset_all_upgrades()
 
 	game_started.emit()
 
@@ -188,6 +198,8 @@ func _on_wave_completed(wave_number: int) -> void:
 	print("[GameController] Wave %d completed!" % wave_number)
 	# Bonus score for completing wave
 	add_score(500 * wave_number)
+	# FASE 2: Credit bonus for completing wave
+	add_credits(50 * wave_number)
 
 func _on_all_waves_completed() -> void:
 	print("[GameController] All waves completed! You win!")
@@ -232,6 +244,40 @@ func get_current_score() -> int:
 
 func get_high_score() -> int:
 	return high_score
+
+#region FASE 2: Credit System
+## Add credits to player's wallet
+func add_credits(amount: int) -> void:
+	if amount <= 0:
+		return
+
+	current_credits += amount
+	credits_changed.emit(current_credits, amount)
+	print("[GameController] +%d credits → Total: %d 💎" % [amount, current_credits])
+
+## Spend credits (returns true if successful)
+func spend_credits(amount: int) -> bool:
+	if amount <= 0:
+		push_warning("[GameController] Cannot spend negative or zero credits")
+		return false
+
+	if current_credits < amount:
+		print("[GameController] ❌ Not enough credits! Need %d, have %d" % [amount, current_credits])
+		return false
+
+	current_credits -= amount
+	credits_changed.emit(current_credits, -amount)
+	print("[GameController] -%d credits → Remaining: %d 💎" % [amount, current_credits])
+	return true
+
+## Check if player can afford an item
+func can_afford(amount: int) -> bool:
+	return current_credits >= amount
+
+## Get current credits
+func get_credits() -> int:
+	return current_credits
+#endregion
 
 #region Pause Menu Signal Handlers
 func _on_pause_resume() -> void:

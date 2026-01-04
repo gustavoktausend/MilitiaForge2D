@@ -734,3 +734,82 @@ func _add_engine_trail() -> void:
 
 	print("[Player] Engine trail added with colors: %v -> %v" % [trail_color_start, trail_color_end])
 #endregion
+
+#region Upgrade Methods (FASE 3: Shop System)
+## Called by UpgradeManager to apply purchased upgrades
+
+func modify_max_health(bonus: int) -> void:
+	"""Increase max health and heal player by bonus amount"""
+	if health:
+		health.max_health += bonus
+		health.current_health += bonus  # Also heal
+		print("[Player] Max health increased by %d (now %d/%d)" % [bonus, health.current_health, health.max_health])
+	else:
+		push_warning("[Player] Health component not found")
+
+func modify_damage_multiplier(multiplier: float) -> void:
+	"""Apply damage multiplier to all weapons"""
+	# TODO: Implement weapon damage modification
+	# WeaponSlotManager doesn't have global multipliers - need to modify individual weapon data
+	print("[Player] Damage multiplier: ×%.2f (TODO: not yet implemented)" % multiplier)
+
+func modify_fire_rate_multiplier(multiplier: float) -> void:
+	"""Apply fire rate multiplier to all weapons"""
+	# TODO: Implement weapon fire rate modification
+	# WeaponSlotManager doesn't have global multipliers - need to modify individual weapon data
+	print("[Player] Fire rate multiplier: ×%.2f (TODO: not yet implemented)" % multiplier)
+
+func modify_speed_multiplier(multiplier: float) -> void:
+	"""Apply speed multiplier to movement"""
+	if movement:
+		movement.max_speed *= multiplier
+		print("[Player] Speed multiplier: ×%.2f (speed: %.1f)" % [multiplier, movement.max_speed])
+	else:
+		push_warning("[Player] BoundedMovement not found")
+
+func modify_pickup_range(multiplier: float) -> void:
+	"""Increase pickup range (magnet effect)"""
+	# TODO: Implement pickup range component
+	print("[Player] Pickup range multiplier: ×%.2f (not yet implemented)" % multiplier)
+
+func modify_piercing(pierce_count: int) -> void:
+	"""Add piercing to projectiles"""
+	# TODO: Implement piercing modification
+	print("[Player] Piercing: +%d (TODO: not yet implemented)" % pierce_count)
+
+func enable_homing(enabled: bool) -> void:
+	"""Enable homing projectiles"""
+	# TODO: Implement homing modification
+	print("[Player] Homing enabled: %s (TODO: not yet implemented)" % enabled)
+
+func modify_regeneration(regen_per_second: float) -> void:
+	"""Add health regeneration"""
+	if health:
+		health.regeneration_rate += regen_per_second
+		print("[Player] Regeneration: +%.1f HP/s (total: %.1f HP/s)" % [regen_per_second, health.regeneration_rate])
+	else:
+		push_warning("[Player] Health component not found")
+
+func modify_drop_rate(multiplier: float) -> void:
+	"""Increase drop rate (lucky charm)"""
+	# TODO: Implement drop rate modifier (needs integration with PowerUpFactory)
+	print("[Player] Drop rate multiplier: ×%.2f (not yet implemented)" % multiplier)
+
+func modify_projectile_size(multiplier: float) -> void:
+	"""Increase projectile size"""
+	# TODO: Implement projectile size modification
+	print("[Player] Projectile size: ×%.2f (TODO: not yet implemented)" % multiplier)
+
+func modify_iframe_duration(bonus: float) -> void:
+	"""Increase invincibility frame duration"""
+	if health:
+		health.invincibility_duration += bonus
+		print("[Player] I-Frame duration: +%.1fs (total: %.1fs)" % [bonus, health.invincibility_duration])
+	else:
+		push_warning("[Player] Health component not found")
+
+func add_temporary_shield(shield_amount: int) -> void:
+	"""Add temporary shield (consumable buff)"""
+	# TODO: Implement shield system (HealthComponent doesn't have add_shield method)
+	print("[Player] Temporary shield: %d HP (TODO: not yet implemented)" % shield_amount)
+#endregion
