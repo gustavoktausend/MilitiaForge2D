@@ -49,11 +49,11 @@ func purchase_upgrade(effect_id: String, value: float) -> void:
 
 	purchased_upgrades[effect_id] += value
 
-	# Apply to player immediately
-	_apply_to_player(effect_id, value)
+	# Apply to player immediately with TOTAL accumulated value
+	_apply_to_player(effect_id, purchased_upgrades[effect_id])
 
 	upgrade_purchased.emit(effect_id, value)
-	print("[UpgradeManager] Purchased: %s = %.2f (total: %.2f)" % [effect_id, value, purchased_upgrades[effect_id]])
+	print("[UpgradeManager] Purchased: %s +%.2f (total: %.2f)" % [effect_id, value, purchased_upgrades[effect_id]])
 
 func get_upgrade_total(effect_id: String) -> float:
 	"""Get total purchased value for an upgrade"""
@@ -123,7 +123,8 @@ func _apply_to_player(effect_id: String, value: float) -> void:
 
 		"damage":
 			if player.has_method("modify_damage_multiplier"):
-				player.modify_damage_multiplier(1.0 + value)
+				var multiplier = 1.0 + value
+				player.modify_damage_multiplier(multiplier)
 
 		"fire_rate":
 			if player.has_method("modify_fire_rate_multiplier"):

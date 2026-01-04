@@ -505,6 +505,10 @@ func _apply_weapon_data(slot: int, data: WeaponData) -> void:
 	weapon.use_object_pooling = data.use_pooling
 	weapon.firing_offset = data.firing_offset
 
+	# Apply projectile scale (for Bigger Bullets upgrade)
+	if "projectile_scale" in data:
+		weapon.projectile_scale = data.projectile_scale
+
 	# Set pool manager
 	if _pool_manager:
 		weapon.set_pool_manager(_pool_manager)

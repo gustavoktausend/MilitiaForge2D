@@ -168,14 +168,16 @@ func spawn_projectile(
 	direction: Vector2,
 	speed: float,
 	damage: int,
-	is_player_projectile: bool = true
+	is_player_projectile: bool = true,
+	visual_scale: float = 1.0
 ) -> Node2D:
 	return await spawn_entity(projectile_type, {
 		"position": position,
 		"direction": direction,
 		"speed": speed,
 		"damage": damage,
-		"is_player_projectile": is_player_projectile
+		"is_player_projectile": is_player_projectile,
+		"visual_scale": visual_scale
 	})
 
 ## Spawn an enemy from the pool (NEW!)
@@ -246,6 +248,10 @@ func _configure_projectile(projectile: Node2D, config: Dictionary) -> void:
 		projectile.speed = config["speed"]
 	if config.has("damage"):
 		projectile.damage = config["damage"]
+		# CRITICAL: Update hitbox damage when projectile damage changes
+		# This ensures the hitbox deals the correct upgraded damage amount
+		if projectile.has_method("update_damage"):
+			projectile.update_damage()
 	if config.has("is_player_projectile"):
 		projectile.is_player_projectile = config["is_player_projectile"]
 

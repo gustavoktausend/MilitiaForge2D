@@ -15,6 +15,7 @@ signal despawned
 @export var damage: int = 10
 @export var lifetime: float = 3.0
 @export var is_player_projectile: bool = true
+@export var visual_scale: float = 1.0  # Multiplier for projectile size (from upgrades)
 #endregion
 
 #region Private Variables
@@ -64,20 +65,20 @@ func _create_visual() -> void:
 		# Calculate scale to match target size
 		var texture_size = sprite_texture.get_size()
 		var scale_factor = target_size / texture_size
-		sprite.scale = scale_factor
+		sprite.scale = scale_factor * visual_scale  # Apply visual_scale multiplier from upgrades
 		
 		add_child(sprite)
 		print("[Projectile] Using sprite: %s (scale: %s, size: %s)" % [sprite_path, scale_factor, target_size])
 	else:
 		# Fallback to ColorRect
 		print("[Projectile] Sprite not found (%s), using ColorRect fallback" % sprite_path)
-		
+
 		var visual = ColorRect.new()
-		visual.size = target_size
-		visual.position = - target_size / 2.0
+		visual.size = target_size * visual_scale  # Apply visual_scale multiplier
+		visual.position = - visual.size / 2.0
 		visual.color = fallback_color
 		add_child(visual)
-		
+
 		# Add glow effect
 		var glow = ColorRect.new()
 		glow.size = visual.size * 1.5
@@ -196,6 +197,12 @@ func update_collision_layers() -> void:
 	print("[Projectile] Collision layers updated: is_player=%s, layer=%d, mask=%d" % [
 		is_player_projectile, hitbox.collision_layer, hitbox.collision_mask
 	])
+
+## Update hitbox damage to match projectile damage
+## CRITICAL: Must be called when projectile damage is changed
+func update_damage() -> void:
+	if hitbox and is_instance_valid(hitbox):
+		hitbox.damage = damage
 
 ## Object Pooling: Reset projectile to default state when returned to pool
 func reset_for_pool() -> void:

@@ -90,6 +90,9 @@ enum Category {
 
 ## Whether to use object pooling for projectiles
 @export var use_pooling: bool = true
+
+## Projectile visual scale multiplier (affects sprite size)
+@export var projectile_scale: float = 1.0
 #endregion
 
 #region Special Properties
