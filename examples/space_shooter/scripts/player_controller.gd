@@ -35,7 +35,7 @@ var pilot_data: PilotData
 
 ## Weapon Configuration (uses WeaponDatabase)
 @export_group("Weapons")
-@export_enum("basic_laser", "spread_shot", "rapid_fire") var primary_weapon_name: String = "basic_laser"
+@export_enum("basic_laser", "spread_shot", "rapid_fire", "twin_laser", "pulse_cannon", "wave_beam") var primary_weapon_name: String = "basic_laser"
 @export_enum("homing_missile", "shotgun_blast", "burst_cannon") var secondary_weapon_name: String = ""
 @export_enum("plasma_bomb", "railgun", "emp_pulse") var special_weapon_name: String = ""
 #endregion
@@ -592,6 +592,16 @@ func _load_weapons_from_database() -> void:
 	print("╔════════════════════════════════════════════════════╗")
 	print("║          🔫 LOADING WEAPONS 🔫                    ║")
 	print("╚════════════════════════════════════════════════════╝")
+
+	# TEMPORARY: Override from PlayerData if available (for testing)
+	if has_node("/root/PlayerData"):
+		var player_data = get_node("/root/PlayerData")
+		if "selected_primary_weapon" in player_data and not player_data.selected_primary_weapon.is_empty():
+			primary_weapon_name = player_data.selected_primary_weapon
+			print("[Player] Using primary weapon from PlayerData: %s" % primary_weapon_name)
+		if "selected_secondary_weapon" in player_data and not player_data.selected_secondary_weapon.is_empty():
+			secondary_weapon_name = player_data.selected_secondary_weapon
+			print("[Player] Using secondary weapon from PlayerData: %s" % secondary_weapon_name)
 
 	# Load PRIMARY weapon (always required)
 	if not primary_weapon_name.is_empty():

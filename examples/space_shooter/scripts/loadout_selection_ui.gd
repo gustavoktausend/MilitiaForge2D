@@ -29,6 +29,10 @@ extends Control
 # Bottom bar
 @onready var start_button: Button = $BottomBar/StartButton
 
+# Weapon selection
+@onready var primary_weapon_option: OptionButton = $WeaponPanel/WeaponHBox/PrimaryWeapon
+@onready var secondary_weapon_option: OptionButton = $WeaponPanel/WeaponHBox/SecondaryWeapon
+
 # Music
 @onready var music_player: AudioStreamPlayer = $MusicPlayer
 
@@ -37,6 +41,10 @@ var current_pilot_index: int = 0
 var current_ship_index: int = 0
 var available_pilots: Array = []
 var available_ships: Array = []
+
+# Weapon selection (temporary for testing)
+var selected_primary_weapon: String = "basic_laser"
+var selected_secondary_weapon: String = "homing_missile"
 
 # Color customization
 var color_buttons: Array[Button] = []
@@ -59,8 +67,10 @@ const COLOR_PRESETS = [
 func _ready() -> void:
 	_load_data()
 	_create_color_buttons()
+	_populate_weapon_selectors()  # Add weapon dropdowns
 	_connect_buttons()
 	_load_saved_color()
+	_load_saved_weapons()  # Load saved weapon selection
 	_update_pilot_display()
 	_update_ship_display()
 	_setup_music()
@@ -135,6 +145,10 @@ func _connect_buttons() -> void:
 
 	# Color
 	intensity_slider.value_changed.connect(_on_intensity_changed)
+
+	# Weapon selection
+	primary_weapon_option.item_selected.connect(_on_primary_weapon_selected)
+	secondary_weapon_option.item_selected.connect(_on_secondary_weapon_selected)
 
 	# Start button
 	start_button.pressed.connect(_on_start_pressed)
@@ -370,6 +384,65 @@ func _save_to_player_data() -> void:
 		player_data.select_ship(current_ship_index)
 		player_data.selected_ship_color = selected_color
 		player_data.selected_color_intensity = color_intensity
+		# Save weapon selection (temporary for testing)
+		player_data.selected_primary_weapon = selected_primary_weapon
+		player_data.selected_secondary_weapon = selected_secondary_weapon
+#endregion
+
+#region Weapon Selection (Temporary for Testing)
+func _populate_weapon_selectors() -> void:
+	"""Populate weapon dropdowns"""
+	# Primary weapons
+	var primary_weapons = WeaponDatabase.get_primary_weapon_names()
+	for i in range(primary_weapons.size()):
+		var weapon_name = primary_weapons[i]
+		var weapon_data = WeaponDatabase.get_primary_weapon(weapon_name)
+		if weapon_data:
+			primary_weapon_option.add_item(weapon_data.weapon_name, i)
+			primary_weapon_option.set_item_metadata(i, weapon_name)
+
+	# Secondary weapons
+	var secondary_weapons = WeaponDatabase.get_secondary_weapon_names()
+	for i in range(secondary_weapons.size()):
+		var weapon_name = secondary_weapons[i]
+		var weapon_data = WeaponDatabase.get_secondary_weapon(weapon_name)
+		if weapon_data:
+			secondary_weapon_option.add_item(weapon_data.weapon_name, i)
+			secondary_weapon_option.set_item_metadata(i, weapon_name)
+
+	print("[LoadoutSelection] Weapon selectors populated")
+
+func _load_saved_weapons() -> void:
+	"""Load saved weapon selection from PlayerData"""
+	if has_node("/root/PlayerData"):
+		var player_data = get_node("/root/PlayerData")
+		if "selected_primary_weapon" in player_data:
+			selected_primary_weapon = player_data.selected_primary_weapon
+			# Select in dropdown
+			for i in range(primary_weapon_option.item_count):
+				if primary_weapon_option.get_item_metadata(i) == selected_primary_weapon:
+					primary_weapon_option.selected = i
+					break
+
+		if "selected_secondary_weapon" in player_data:
+			selected_secondary_weapon = player_data.selected_secondary_weapon
+			# Select in dropdown
+			for i in range(secondary_weapon_option.item_count):
+				if secondary_weapon_option.get_item_metadata(i) == selected_secondary_weapon:
+					secondary_weapon_option.selected = i
+					break
+
+func _on_primary_weapon_selected(index: int) -> void:
+	"""Handle primary weapon selection"""
+	selected_primary_weapon = primary_weapon_option.get_item_metadata(index)
+	_save_to_player_data()
+	print("[LoadoutSelection] Primary weapon selected: %s" % selected_primary_weapon)
+
+func _on_secondary_weapon_selected(index: int) -> void:
+	"""Handle secondary weapon selection"""
+	selected_secondary_weapon = secondary_weapon_option.get_item_metadata(index)
+	_save_to_player_data()
+	print("[LoadoutSelection] Secondary weapon selected: %s" % selected_secondary_weapon)
 #endregion
 
 #region Music Control

@@ -26,6 +26,13 @@ var selected_pilot_data: PilotData
 var available_pilots: Array[PilotData] = []
 #endregion
 
+#region Weapon Selection (Temporary for Testing)
+## Selected weapons - will be removed when ship loadout system is implemented
+var selected_primary_weapon: String = "basic_laser"
+var selected_secondary_weapon: String = "homing_missile"
+var selected_special_weapon: String = "plasma_bomb"
+#endregion
+
 func _ready() -> void:
 	_load_available_ships()
 	_load_available_pilots()

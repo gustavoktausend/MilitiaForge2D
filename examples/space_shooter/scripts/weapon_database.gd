@@ -102,6 +102,99 @@ static func create_rapid_fire() -> WeaponData:
 
 	return weapon
 
+## Create Twin Laser weapon (DUAL, two parallel shots)
+static func create_twin_laser() -> WeaponData:
+	var weapon = WeaponData.new()
+
+	# Identity
+	weapon.weapon_name = "Twin Laser"
+	weapon.description = "Fires two parallel laser beams. Double the firepower!"
+	weapon.category = WeaponData.Category.PRIMARY
+
+	# Combat Stats
+	weapon.weapon_type = WeaponComponent.WeaponType.SPREAD
+	weapon.damage = 9  # Slightly lower than basic, but 2 shots
+	weapon.fire_rate = 0.22  # Slightly slower than basic
+	weapon.projectile_speed = 600.0
+	weapon.auto_fire = false
+
+	# Spread settings (parallel shots)
+	weapon.spread_count = 2
+	weapon.spread_angle = 0.0  # Parallel (no angle)
+
+	# Ammo (infinite for PRIMARY)
+	weapon.infinite_ammo = true
+	weapon.max_ammo = -1
+
+	# Projectile
+	weapon.pooled_projectile_type = "player_laser"
+	weapon.use_pooling = true
+	weapon.firing_offset = Vector2(-15, -30)  # Offset left for dual effect
+
+	return weapon
+
+## Create Pulse Cannon weapon (BURST, 2 quick powerful shots)
+static func create_pulse_cannon() -> WeaponData:
+	var weapon = WeaponData.new()
+
+	# Identity
+	weapon.weapon_name = "Pulse Cannon"
+	weapon.description = "Fires 2 powerful energy pulses in quick succession. High burst damage!"
+	weapon.category = WeaponData.Category.PRIMARY
+
+	# Combat Stats
+	weapon.weapon_type = WeaponComponent.WeaponType.BURST
+	weapon.damage = 14  # Higher damage per shot
+	weapon.fire_rate = 0.35  # Slower overall fire rate
+	weapon.projectile_speed = 650.0
+	weapon.auto_fire = false
+
+	# Burst settings
+	weapon.burst_count = 2
+	weapon.burst_delay = 0.12  # Quick double-tap
+
+	# Ammo (infinite for PRIMARY)
+	weapon.infinite_ammo = true
+	weapon.max_ammo = -1
+
+	# Projectile
+	weapon.pooled_projectile_type = "player_laser"
+	weapon.use_pooling = true
+	weapon.firing_offset = Vector2(0, -30)
+
+	return weapon
+
+## Create Wave Beam weapon (SPREAD, 5 projectiles in wave pattern)
+static func create_wave_beam() -> WeaponData:
+	var weapon = WeaponData.new()
+
+	# Identity
+	weapon.weapon_name = "Wave Beam"
+	weapon.description = "Fires 5 projectiles in a wide wave pattern. Excellent area coverage!"
+	weapon.category = WeaponData.Category.PRIMARY
+
+	# Combat Stats
+	weapon.weapon_type = WeaponComponent.WeaponType.SPREAD
+	weapon.damage = 7  # Lower damage per projectile (5 total)
+	weapon.fire_rate = 0.3  # Slower fire rate
+	weapon.projectile_speed = 580.0
+	weapon.auto_fire = false
+
+	# Spread settings (wide wave)
+	weapon.spread_count = 5
+	weapon.spread_angle = 15.0  # 15 degrees between each shot (60° total spread)
+
+	# Ammo (infinite for PRIMARY)
+	weapon.infinite_ammo = true
+	weapon.max_ammo = -1
+
+	# Projectile
+	weapon.pooled_projectile_type = "player_laser"
+	weapon.use_pooling = true
+	weapon.firing_offset = Vector2(0, -30)
+
+	return weapon
+
 #endregion
 
 #region SECONDARY Weapons (Moderate Cooldown/Renewable Ammo)
@@ -314,7 +407,7 @@ static func create_emp_pulse() -> WeaponData:
 #region Getters by Name (Factory Pattern)
 
 ## Get PRIMARY weapon by name
-## @param weapon_name: Name identifier (e.g., "basic_laser", "spread_shot", "rapid_fire")
+## @param weapon_name: Name identifier (e.g., "basic_laser", "twin_laser", "pulse_cannon", etc.)
 ## @returns: WeaponData or null if not found
 static func get_primary_weapon(weapon_name: String) -> WeaponData:
 	match weapon_name.to_lower():
@@ -324,6 +417,12 @@ static func get_primary_weapon(weapon_name: String) -> WeaponData:
 			return create_spread_shot()
 		"rapid_fire":
 			return create_rapid_fire()
+		"twin_laser":
+			return create_twin_laser()
+		"pulse_cannon":
+			return create_pulse_cannon()
+		"wave_beam":
+			return create_wave_beam()
 		_:
 			push_warning("[WeaponDatabase] Unknown PRIMARY weapon: %s" % weapon_name)
 			return null
@@ -356,7 +455,7 @@ static func get_special_weapon(weapon_name: String) -> WeaponData:
 
 ## Get all available PRIMARY weapon names
 static func get_primary_weapon_names() -> Array[String]:
-	return ["basic_laser", "spread_shot", "rapid_fire"]
+	return ["basic_laser", "spread_shot", "rapid_fire", "twin_laser", "pulse_cannon", "wave_beam"]
 
 ## Get all available SECONDARY weapon names
 static func get_secondary_weapon_names() -> Array[String]:
