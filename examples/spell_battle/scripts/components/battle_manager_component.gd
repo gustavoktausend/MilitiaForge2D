@@ -110,6 +110,9 @@ func _ready() -> void:
 	component_ready()
 
 func component_ready() -> void:
+	# Add to group for HUD discovery
+	add_to_group("battle_manager")
+
 	# Find or create TurnSystemComponent
 	_turn_system = _find_or_create_turn_system()
 
@@ -337,9 +340,12 @@ func _validate_battle_setup() -> bool:
 
 ## Find or create turn system
 func _find_or_create_turn_system() -> TurnSystemComponent:
+	# Determine parent node (host or get_parent as fallback)
+	var parent_node = host if host else get_parent()
+
 	# Look for existing TurnSystemComponent
-	if host:
-		for child in host.get_children():
+	if parent_node:
+		for child in parent_node.get_children():
 			if child is TurnSystemComponent:
 				if debug_battle:
 					print("[BattleManager] Found existing TurnSystemComponent")
@@ -349,7 +355,12 @@ func _find_or_create_turn_system() -> TurnSystemComponent:
 	var turn_sys = TurnSystemComponent.new()
 	turn_sys.auto_start = false
 	turn_sys.debug_turns = debug_battle
-	host.add_child(turn_sys)
+
+	# Add to parent or self
+	if parent_node:
+		parent_node.add_child(turn_sys)
+	else:
+		add_child(turn_sys)
 
 	if debug_battle:
 		print("[BattleManager] Created new TurnSystemComponent")

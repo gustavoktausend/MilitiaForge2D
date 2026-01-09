@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bvc6lonpjtu8"]
+[gd_scene load_steps=3 format=3 uid="uid://bvc6lonpjtu8"]
 
 [ext_resource type="Script" uid="uid://co51vpg8ok70q" path="res://examples/spell_battle/test_standalone.gd" id="1_standalone"]
+[ext_resource type="PackedScene" uid="uid://dqx8vn1kqbvhq" path="res://examples/spell_battle/ui/spell_battle_hud.tscn" id="2_hud"]
 
 [node name="SpellBattleTestStandalone" type="Node2D"]
 script = ExtResource("1_standalone")
@@ -24,3 +25,5 @@ text = "Spell Battle - Standalone Test
 Check console for results (F8)"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="SpellBattleHUD" parent="." instance=ExtResource("2_hud")]

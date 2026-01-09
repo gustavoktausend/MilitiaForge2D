@@ -1,0 +1,117 @@
+[gd_scene load_steps=5 format=3 uid="uid://dqx8vn1kqbvhq"]
+
+[ext_resource type="Script" path="res://examples/spell_battle/ui/spell_battle_hud.gd" id="1_battle_hud"]
+[ext_resource type="Script" path="res://examples/spell_battle/ui/widgets/navi_health_widget.gd" id="2_health_widget"]
+[ext_resource type="Script" path="res://examples/spell_battle/ui/widgets/slot_in_gauge_widget.gd" id="3_gauge_widget"]
+[ext_resource type="Script" path="res://examples/spell_battle/ui/components/turn_counter_display.gd" id="4_turn_counter"]
+
+[node name="SpellBattleHUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_battle_hud")
+player_health_widget = NodePath("MarginContainer/VBoxContainer/TopBar/PlayerHealthSection/PlayerHealthWidget")
+enemy_health_widget = NodePath("MarginContainer/VBoxContainer/TopBar/EnemyHealthSection/EnemyHealthWidget")
+slot_in_gauge_widget = NodePath("MarginContainer/VBoxContainer/MiddleSection/SlotInSection/SlotInGaugeWidget")
+turn_counter_display = NodePath("MarginContainer/VBoxContainer/MiddleSection/TurnCounterDisplay")
+player_name_label = NodePath("MarginContainer/VBoxContainer/TopBar/PlayerHealthSection/PlayerNameLabel")
+enemy_name_label = NodePath("MarginContainer/VBoxContainer/TopBar/EnemyHealthSection/EnemyNameLabel")
+debug_hud = true
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="TopBar" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="PlayerHealthSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlayerNameLabel" type="Label" parent="MarginContainer/VBoxContainer/TopBar/PlayerHealthSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941176, 0.941176, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "MEGAMAN.EXE"
+horizontal_alignment = 1
+
+[node name="PlayerHealthWidget" type="Control" parent="MarginContainer/VBoxContainer/TopBar/PlayerHealthSection"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+script = ExtResource("2_health_widget")
+
+[node name="CenterSpacer" type="Control" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnemyHealthSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EnemyNameLabel" type="Label" parent="MarginContainer/VBoxContainer/TopBar/EnemyHealthSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.0784314, 0.576471, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "FIREMAN.EXE"
+horizontal_alignment = 1
+
+[node name="EnemyHealthWidget" type="Control" parent="MarginContainer/VBoxContainer/TopBar/EnemyHealthSection"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+script = ExtResource("2_health_widget")
+
+[node name="MiddleSection" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="SlotInSection" type="VBoxContainer" parent="MarginContainer/VBoxContainer/MiddleSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SlotInLabel" type="Label" parent="MarginContainer/VBoxContainer/MiddleSection/SlotInSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941176, 0.941176, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "SLOT-IN GAUGE"
+horizontal_alignment = 1
+
+[node name="SlotInGaugeWidget" type="Control" parent="MarginContainer/VBoxContainer/MiddleSection/SlotInSection"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+script = ExtResource("3_gauge_widget")
+
+[node name="TurnCounterSpacer" type="Control" parent="MarginContainer/VBoxContainer/MiddleSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TurnCounterDisplay" type="Label" parent="MarginContainer/VBoxContainer/MiddleSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.941176, 0.941176, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "TURN 0 / 10"
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("4_turn_counter")
+
+[node name="BottomSpacer" type="Control" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
